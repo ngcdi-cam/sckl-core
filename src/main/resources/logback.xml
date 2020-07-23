@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <property name="HOME_LOG" value="/opt/docker/logs/app.log"/>
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+        <!-- See http://logback.qos.ch/manual/layouts.html -->
+        <!-- See http://doc.akka.io/docs/akka/2.0/scala/logging.html -->
+        <pattern>%date{ISO8601} %-5level %logger{36} - %msg%n</pattern>
+      </encoder>
+  </appender>
+
+
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <file>${HOME_LOG}</file>
+    <append>true</append>
+    <!-- set immediateFlush to false for much higher logging throughput -->
+    <immediateFlush>true</immediateFlush>
+    <!-- encoders are assigned the type
+         ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+    <encoder>
+        <pattern>%date{ISO8601} %-5level %logger{36} - %msg%n</pattern>
+      <!--<pattern>%msg%n</pattern>-->
+    </encoder>
+  </appender>
+
+<!--  <logger name="akka" level="OFF" />
+  <logger name="org.ngcdi.sckl.DigitalAsset" level="INFO" />
+  <logger name="org.ngcdi.sckl.LocalProcessor" level="OFF" />
+    <logger name="org.ngcdi.sckl.sim.SimAsset" level="OFF" />
+    <logger name="org.ngcdi.sckl.LocalView" level="OFF" />
+  <logger name="org.ngcdi.sckl.ServiceManager" level="INFO" />
+    <logger name="org.ngcdi.sckl.FunctionProvisioner" level="INFO" />
+
+<logger name="kamon" level="DEBUG" />
+  <logger name="grafana" level="INFO" />
+  <logger name="prometheus" level="INFO" />
+-->
+<!--
+<logger name="org.ngcdi" level="DEBUG" additivity="false">
+    <appender-ref ref="FILE" />
+</logger>
+<logger name="akka" level="DEBUG" >
+    <appender-ref ref="FILE" />
+</logger>
+<logger name="spray" level="DEBUG" >
+    <appender-ref ref="FILE" />
+</logger>
+-->
+<root level="INFO">
+    <appender-ref ref="console"/>
+    <appender-ref ref="FILE"/>
+</root>
+</configuration>

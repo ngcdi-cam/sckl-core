@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+// Brought in from scalapb-runtime
+import "scalapb/scalapb.proto";
+import "google/protobuf/wrappers.proto";
+
+
+package org.ngcdi.sckl;
+
+message SMRegistration {
+    string text = 1;
+}
+message NewInfrastructure{
+    int32 q = 1;
+}
+message ReplaceFunction{
+    string functionToReplace = 1;
+    string serviceManager = 2;
+}
+message FunctionDisposal{
+    string af = 1;
+}
+message StopMessage{
+    string af = 1;
+}
+message Sense{
+    string text = 1;  
+}
+
+message SenseFlow{
+    repeated string text = 1;  
+}
+
+message InfrastructureReady{
+    repeated string infrastructure = 1;
+}
+message AggregateLocalView{
+    repeated Measurement measurements = 1;
+}
+message Measurement{
+    string neId = 1;
+    string metricId = 2;
+    string resourceId = 3;
+    int64 seconds = 4;
+    int32 nanos = 5;
+    double value = 6;
+    string measurementDate = 7;
+    string metricName = 8;
+    string neIp = 9;
+}
+message DARegistration{
+    string assetName = 1;
+}
+message RegisterProvisioner{
+    string text = 1;
+}
+message AnomalyDetected{
+    repeated string  timestamps = 1;
+    string resultad = 2;
+}
+

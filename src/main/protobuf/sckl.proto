@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+// Brought in from scalapb-runtime
+package org.ngcdi.sckl;
+
+option java_package = "org.ngcdi";
+
+message InputVars{
+    double median = 1;
+    double sd = 2;
+    int32 minseglength = 3;
+    int32 maxseglength = 4;
+    double lambda = 5;
+}
+
+message OutputVars{
+    repeated double sumx = 1;
+    repeated double sumx2 = 2;
+    repeated double optimalcost = 3;
+    repeated int32 anom = 4;
+    int32 counter = 5;
+}
+
+message AnomLoc{
+    int32 anomstate = 1;
+    int32 pointanom = 2;
+    repeated int32 collectiveanom = 3;
+}
+    
+message State{
+    InputVars inputvars = 1;
+    OutputVars outputvars = 2;
+}
+
+message DWrapper{
+    repeated double newx = 1;
+}
