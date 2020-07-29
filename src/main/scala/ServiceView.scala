@@ -9,6 +9,11 @@ import scala.concurrent.duration._
 
 import java.time.{ZoneOffset,LocalDateTime, Instant}
 
+/*
+* This trait implements the generation of a service view with the measurements
+* collected by the DigitalAsset agents
+*
+*/
 trait ServiceView {
 
   this: ScklActor with AnomalyDetector =>
@@ -27,7 +32,7 @@ trait ServiceView {
 
 
   def serviceViewPreStart(): Unit = {
-   // restClient = context.actorOf(RESTClient.props(oRerouteUrl), name = "restClient")
+    // Initialize the view with detection behaviours required
     anomalyDetectorPreStart()
     triggerReporting()
     log.debug("FINISHED SV PRE-START!!!!")
@@ -36,14 +41,21 @@ trait ServiceView {
 
   def svBehaviour: Receive = {
 
+    // DigitalAsset agents send this message with the Seq of measurements they
+    // have sensed in the last time interval
     case AggregateLocalView(measurements:Seq[Measurement]) =>
       countMsg("scklmsg")
       doAggregateLocalViews(measurements)
+
+    //periodic self message to process measurements of the last time window
     case ReportService =>
       countMsg("scklmsg")
       doReportService()
   }
 
+  /*
+  * Aggregates measurements collected by DigitalAsset agents
+  */
   def doAggregateLocalViews(measurements:Seq[Measurement])={
     val moi = measurements.foldLeft[Seq[Measurement]](Seq.empty){
       (ac,m)=>
@@ -70,7 +82,9 @@ trait ServiceView {
 
   }
 
-
+  /*
+  * Triggers reporting for a time window
+  */
   def doReportService() ={
     if(!aggregatedView.isEmpty){
 
@@ -79,7 +93,6 @@ trait ServiceView {
        log.debug("window from: "+LocalDateTime.ofInstant(from,ZoneOffset.UTC).format(formatterTime) +" - to:"+LocalDateTime.ofInstant(to,ZoneOffset.UTC).format(formatterTime))
       log.debug("window from: "+from.getEpochSecond+" - "+from.getNano+" - to:"+to.getEpochSecond+" - "+to.getNano)
 
-    //monitorWindowSLAsIntentsNode(from,to)
       monitorWindowSLAs(from,to)
       lastReportTo = to
 
@@ -87,8 +100,15 @@ trait ServiceView {
   }
 
 
+  /*
+  * Each ServiceManager looks after a number of services of interest that are
+  * returned by this method.
+  */
   def obtainServicesOfInterest():Seq[Tuple3[String,String,String]] = {
     log.debug("key_services:"+keyServices)
+
+    // TODO temporarily commented, remove comment to make every SM filter services of interest
+
     //val ks = keyServices
     //    .foldLeft[Seq[Tuple3[String,String,String]]](Seq.empty){
     //      (ac,v) =>
@@ -102,7 +122,11 @@ trait ServiceView {
     ks
   }
 
+  /*
+  * Every service has reference SLAs that returned by this method
+  */
   def obtainReferenceSLAs():Seq[ServiceLevel] = {
+    //TODO get list of reference SLAs from a config file.
     val slas = Seq(
       ServiceLevel(1,200000,300000,100000,"bandwidth")
         ,ServiceLevel(1,200000,300000,100000,Temperature)
@@ -115,7 +139,9 @@ trait ServiceView {
     slas
   }
 
-
+  /*
+  * Filter the measurements that correspond only to the time window of interest
+  */
   def getSample(from:Instant,to:Instant,currentView:Seq[Measurement],metricName:String):Seq[Measurement] = {
     currentView
       .filter(_.metricName == metricName)
@@ -153,6 +179,9 @@ trait ServiceView {
     }
   }
 
+ /*
+ * For reporting, calculates aggregates per service in last time window
+ */
   def calculatePerService(sample:Seq[Measurement], metricName:String, serviceLabel:String):Unit={
     val smean = calculateMean(
       sample.map(_.value).collect{case v:Double => v})
@@ -170,7 +199,9 @@ trait ServiceView {
     system.scheduler.schedule(initialServiceReportDelay, frequencyServiceReport seconds, self, ReportService)
   }
 
-
+ /*
+ * It returns only condition measurements, used by PredictiveAnalytics
+ */
   def getConditionOnlyView():Seq[Measurement]={
     aggregatedView
       .filter{
