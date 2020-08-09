@@ -1,7 +1,7 @@
 //import com.trueaccord.scalapb.compiler.Version.scalapbVersion
 
 /* scala versions and options */
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.12"
 
 // These options will be used for *all* versions.
 scalacOptions ++= Seq(

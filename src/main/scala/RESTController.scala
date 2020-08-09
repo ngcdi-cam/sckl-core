@@ -7,47 +7,32 @@ import org.ngcdi.sckl.msgs._
 import org.ngcdi.sckl.Constants._
 import org.ngcdi.sckl.model._
 
-
 import akka.stream.ActorMaterializer
 import akka.actor._
-
 
 import scala.concurrent.duration._
 import scala.collection.mutable.ListBuffer
 
-
-
 trait RESTController extends DAController {
-  this: DigitalAssetBase  =>
-  //import context._
+  this: DigitalAssetBase =>
 
-  //implicit val system = context.system
-
-  //import system.dispatcher
-
-  //implicit val materializer = ActorMaterializer()
-  // needed for the future flatMap/onComplete in the end
-  //implicit val executionContext = context.system.dispatcher
-
-  var restClientSen:ActorRef = _
-  def query:String
+  var restClientSen: ActorRef = _
+  def query: String
 
   // var lastReadings:Seq[FlowStat]= _
 
-  override def startSensors():Unit = {
+  override def startSensors(): Unit = {
     log.info("REST Start Sensors..")
-    restClientSen = context.actorOf(RESTClient.props(sdncServer,sdncPort), name = "restClientSen")
-    log.info("restClientSen Reference Found==>"+restClientSen)
+    restClientSen = context.actorOf(
+      RESTClient.props(sdncServer, sdncPort),
+      name = "restClientSen"
+    )
+    log.info("restClientSen Reference Found==>" + restClientSen)
   }
 
-  override def sense(assetName:String, freqSensing:Int):Unit = {
-    log.debug("NODE_name:====>"+nodeName+"<->query->"+query+"<--")
-    restClientSen ! GetRequest(query,false)
-    context.system.scheduler.scheduleOnce( freqSensing seconds, self, ReSense)
-
+  override def sense(assetName: String, freqSensing: Int): Unit = {
+    log.debug("NODE_name:====>" + nodeName + "<->query->" + query + "<--")
+    restClientSen ! GetRequest(query, false)
+    context.system.scheduler.scheduleOnce(freqSensing seconds, self, ReSense)
   }
-
-
-
-
 }

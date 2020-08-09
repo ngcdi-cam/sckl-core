@@ -6,7 +6,7 @@ import org.ngcdi.sckl.ClusteringConfig._
 import org.ngcdi.sckl.msgs._
 import org.ngcdi.sckl.model._
 
-import java.nio.file.{Files,FileSystems}
+import java.nio.file.{Files, FileSystems}
 
 import akka.stream.ActorMaterializer
 import akka.actor._
@@ -23,50 +23,50 @@ import akka.actor.{ActorRef}
 import org.ngcdi.sckl.sdn._
 import org.ngcdi.sckl.NetworkUtils._
 
-
-
 //final case class ProcessResponse(entityStr:String,entity:ResponseEntity)
 //final case class ProcessResponse(entity:String)
 
 /*
  * Controller that enables sensing and processing from different sources
  */
-trait CombinedController extends PortParser with  FileController with RESTController{
+trait CombinedController
+    extends PortParser
+    with FileController
+    with RESTController {
   this: DigitalAssetBase =>
 
-  override def  query = Config.restMonitoringUrl + nodeName
+  override def query = Config.restMonitoringUrl + nodeName
 
-  override def startSensors():Unit = {
+  override def startSensors(): Unit = {
     log.info("Starting Combined!!!")
     super[RESTController].startSensors()
     super[FileController].startSensors()
   }
 
-//  override def sense(assetName:String, freqSensing:Int):Unit = {
-//    super[RESTController].sense(assetName,freqSensing)
- //   super[FileController].sense(assetName,freqSensing)
-//  }
-
-  override def updateMeasurements(newMeasurements:Seq[Model])={
+  override def updateMeasurements(newMeasurements: Seq[Model]) = {
     val now = getReadingTime()
-    log.debug("Combined newMeasurements==>"+newMeasurements)
-    //val fp = filterRelevantPorts(keyHosts,f.toSeq)
+    log.debug("Combined newMeasurements==>" + newMeasurements)
     newMeasurements
       .map(ps => ps.asInstanceOf[PortStat])
-      .foreach {
-        nf =>
-        //publish("ngcdi.da.bytes",nodeName,"tx",nf.port_no,nf.tx_bytes) // Bytes tx per port
-        //publish("ngcdi.da.bytes",nodeName,"rx",nf.port_no,nf.rx_bytes)  // Bytes rx per port
+      .foreach { nf =>
         lastReadings
-          .map(
-            t=>t.asInstanceOf[PortStat]
-          )
-          .filter(_.port_no==nf.port_no)
-          .map{
-            of =>
-            getThroughputKBytes(of.tx_bytes,nf.tx_bytes,of.duration_sec,nf.duration_sec) match{
+          .map(t => t.asInstanceOf[PortStat])
+          .filter(_.port_no == nf.port_no)
+          .map { of =>
+            getThroughputKBytes(
+              of.tx_bytes,
+              nf.tx_bytes,
+              of.duration_sec,
+              nf.duration_sec
+            ) match {
               case Some(v) =>
-                sendToLocalView(nodeName,nf.port_no.toString(), v, now,ThroughputOut)
+                sendToLocalView(
+                  nodeName,
+                  nf.port_no.toString(),
+                  v,
+                  now,
+                  ThroughputOut
+                )
               case None =>
                 log.info("No Throughput Calculated")
             }
@@ -77,12 +77,10 @@ trait CombinedController extends PortParser with  FileController with RESTContro
 
   override def ctlBehaviour = {
     super.ctlBehaviour
-      .orElse[Any,Unit](parsingBehaviour)
-      .orElse[Any,Unit]{
-        case Link(linkFileName:String) =>
+      .orElse[Any, Unit](parsingBehaviour)
+      .orElse[Any, Unit] {
+        case Link(linkFileName: String) =>
           linkViaCSV(linkFileName)
       }
   }
-
-
 }

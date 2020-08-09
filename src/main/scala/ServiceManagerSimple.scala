@@ -35,7 +35,6 @@ object ServiceManagerSimple{
 }
 
 class ServiceManagerSimple() extends ScklActor
-//with Clustering
     with Remoting
     with ServiceView
     with GroupAnomalyDetector
@@ -44,22 +43,11 @@ class ServiceManagerSimple() extends ScklActor
     with WebServer
     {
 
-//  import context._ //imports system
   var reqRegistrations:Int = 0
-  //var functionProvisioner:ActorSelection = _
   var addresses:Seq[String] = Seq.empty
 
-  //override def getInterestedRoleName():String = {
-  //  return org.ngcdi.sckl.Constants.functionProvisionerName
-  //}
-
-  //override def registerInterestedRole(ref:ActorRef):Unit = {
-  //  functionProvisioner = ref
-  //  log.debug("I have got provisioner")
-  //}
 
   override def preStart(): Unit = {
-    // clusteringPreStart()
     connPreStart()
     serviceViewPreStart()
     actuatorPreStart()
@@ -104,6 +92,7 @@ class ServiceManagerSimple() extends ScklActor
   /*
    *  Monitors until Function Provisioner is Ready to provision q assets
    */
+  
   def monitorRegistration(q:Int) = {
     //log.debug("reqRegistrations=>"+reqRegistrations+" --- functionProv => "+ FunctionProvisioner)
     log.debug("FP==>"+functionProvisioner+"<==")

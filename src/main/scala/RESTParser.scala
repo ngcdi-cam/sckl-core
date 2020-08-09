@@ -8,23 +8,24 @@ import org.ngcdi.sckl.msgs._
 import org.ngcdi.sckl.Config._
 import akka.util.ByteString
 
+trait RESTParser extends MessageParser {
+  this: ScklActor =>
 
-trait RESTParser extends MessageParser{
-  this:ScklActor =>
-
-  override def parseResponse(request:String,body:ByteString,data:String):Unit={
-    log.debug("REST Processing response for query..."+request)
-    log.debug("REST Processing response case is: "+restMonitoringUrlNodeName)
-    val queryRoutes = "/api/get_intents"//netwUrls.head
-    request match{
-
-
+  override def parseResponse(
+      request: String,
+      body: ByteString,
+      data: String
+  ): Unit = {
+    log.debug("REST Processing response for query..." + request)
+    log.debug("REST Processing response case is: " + restMonitoringUrlNodeName)
+    val queryRoutes = "/api/get_intents" //netwUrls.head
+    request match {
       case `restMonitoringUrl` =>
         log.debug("parsing intent stats")
         val newMeasurements = parseStatistics(body)
         self ! NewMeasurements(newMeasurements)
 
-      case `restMonitoringUrlNodeName`  =>
+      case `restMonitoringUrlNodeName` =>
         log.debug("parsing stats")
         val newMeasurements = parseStatistics(body)
         self ! NewMeasurements(newMeasurements)
@@ -36,26 +37,35 @@ trait RESTParser extends MessageParser{
 
       case "/api/get_routes" =>
         log.debug("parsing get alternative routes")
-        val altRoutes = parseAlternativeRoutes(data,body)
+        val altRoutes = parseAlternativeRoutes(data, body)
         self ! DoAlternativeRoutes(altRoutes)
 
       case "/api/push_intent" =>
         log.debug("parsing push intent response")
-        val result = parseRerouteResult(data,body)
+        val result = parseRerouteResult(data, body)
         self ! DoResultReroute(result)
       case _ =>
-        log.debug("query response case is: "+restMonitoringUrlNodeName)
-        log.debug("Unknown request:"+request)
+        log.debug("query response case is: " + restMonitoringUrlNodeName)
+        log.debug("Unknown request:" + request)
     }
   }
 
-  override def parseResponseExtra(request:String,body:ByteString,data:String,dataExtra:Seq[String]):Unit={
+  override def parseResponseExtra(
+      request: String,
+      body: ByteString,
+      data: String,
+      dataExtra: Seq[String]
+  ): Unit = {}
 
-  }
-
-  def parseStatistics(body:ByteString):Seq[Model]
-  def parseRoutes(body:ByteString):Seq[Model]
-  def parseAlternativeRoutes(data:String,body:ByteString):Tuple2[String,Option[Seq[Seq[String]]]]
-  def parseRerouteResult(data:String,body:ByteString):Tuple2[String,Boolean]
+  def parseStatistics(body: ByteString): Seq[Model]
+  def parseRoutes(body: ByteString): Seq[Model]
+  def parseAlternativeRoutes(
+      data: String,
+      body: ByteString
+  ): Tuple2[String, Option[Seq[Seq[String]]]]
+  def parseRerouteResult(
+      data: String,
+      body: ByteString
+  ): Tuple2[String, Boolean]
 
 }
