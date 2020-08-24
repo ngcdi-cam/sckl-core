@@ -2,3 +2,6 @@ target/
 *.class
 .ensime
 .ensime_cache/
+.metals/
+.bloop/
+.vscode/

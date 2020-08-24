@@ -19,6 +19,9 @@ val kamon = "2.1.0"
 //val akkaHttp = "10.1.9"
 val akkaHttp = "10.1.11"
 
+
+fork in run := true
+
 /* dependencies */
 libraryDependencies ++= Seq (
   // -- Logging --
@@ -82,7 +85,7 @@ libraryDependencies += "com.slack.api" % "slack-app-backend" % "1.0.6"
 
 //javaOptions += "-javaagent:/home/mep53/workspace/scala/kamon/aspectj-1.9.2/lib/aspectjweaver.jar"
 
-javaOptions += "--add-opens java.base/java.lang=ALL-UNNAMED"
+// javaOptions += "--add-opens java.base/java.lang=ALL-UNNAMED"
 
 lazy val logback = "ch.qos.logback" % "logback-classic" % "1.2.3" % "runtime"
 lazy val root = (project in file("."))

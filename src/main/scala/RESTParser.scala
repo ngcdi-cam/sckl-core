@@ -18,7 +18,7 @@ trait RESTParser extends MessageParser {
   ): Unit = {
     log.debug("REST Processing response for query..." + request)
     log.debug("REST Processing response case is: " + restMonitoringUrlNodeName)
-    val queryRoutes = "/api/get_intents" //netwUrls.head
+    // val queryRoutes = "/api/get_intents" //netwUrls.head
     request match {
       case `restMonitoringUrl` =>
         log.debug("parsing intent stats")
@@ -27,6 +27,10 @@ trait RESTParser extends MessageParser {
 
       case `restMonitoringUrlNodeName` =>
         log.debug("parsing stats")
+        val newMeasurements = parseStatistics(body)
+        self ! NewMeasurements(newMeasurements)
+      
+      case "/api/ryu_stats" =>
         val newMeasurements = parseStatistics(body)
         self ! NewMeasurements(newMeasurements)
 

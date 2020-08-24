@@ -2,19 +2,15 @@ package org.ngcdi.sckl.anomalydetector
 
 import org.ngcdi.sckl.msgs.Measurement
 
-case class AnomalyDetectionResult(
-    detected: Boolean,
-    anomalies: Seq[Measurement]
-)
-object Empty extends AnomalyDetectionResult(false, Seq.empty)
+abstract class AnomalyDetectionResult()
+object Empty extends AnomalyDetectionResult()
 
 abstract class AnomalyKind
 object SingleAnomaly extends AnomalyKind
 object GroupAnomaly extends AnomalyKind
 object UndefinedAnomaly extends AnomalyKind
 
-abstract class AbstractAnomalyDetector[O, R](onFailure: R => Unit = { (x: R) => Unit }, filter: Int => Boolean = { x => true }) {
-
+abstract class AbstractAnomalyDetector[O, R <: AnomalyDetectionResult](onFailure: R => Unit = { (x: R) => Unit }, filter: Int => Boolean = { x => true }) {
   val name: String = "UnnamedDetector"
   val kind: AnomalyKind = UndefinedAnomaly
 
@@ -32,12 +28,7 @@ abstract class AbstractAnomalyDetector[O, R](onFailure: R => Unit = { (x: R) => 
     if (!filter.apply(tick)) None
     //log.info(s"Running anomaly detector $name...")
     val result = check(tick, sample, options)
-    result match {
-      case Some(value) => 
-        //log.info("Anomaly detected")
-        onFailure.apply(value)
-      case _           => Unit
-    }
+    if (result.isDefined) onFailure.apply(result.get)
     result
   }
 }

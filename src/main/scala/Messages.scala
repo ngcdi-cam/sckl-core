@@ -110,8 +110,6 @@ final case class ParseResponseBodyExtra(request:String,body:ByteString,data:Stri
 final case class ParseResponse(request:String,entity:HttpEntity)
 final case class ProcessResponsePost(result:String)
 
-
-
 final case class NewMeasurements(newMeasurements:Seq[Model])
 
 final case class GetCurrentRoutes()

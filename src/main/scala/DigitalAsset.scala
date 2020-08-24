@@ -21,6 +21,8 @@ import kamon.Kamon
 import ClusteringConfig._
 import msgs._
 import Constants._
+import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerReceiverBehaviour
+import org.ngcdi.sckl.behaviour.NetworkAwarenessStatsStreamerBehaviour
 
 object DigitalAsset {
   def props(datype: String, id: String, localProcessor: ActorRef): Props = {
@@ -44,7 +46,9 @@ object DigitalAsset {
 }
 
 class DigitalAsset(id: String, localProcessor: ActorRef)
-    extends DigitalAssetBase(id, localProcessor) {
+    extends DigitalAssetBase(id, localProcessor)
+    with NetworkAwarenessManagerReceiverBehaviour
+    with NetworkAwarenessStatsStreamerBehaviour {
 
   var keyHosts: Seq[String] = _
 
@@ -52,6 +56,11 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
 
   override def preStart(): Unit = {
     connPreStart()
+    log.info("My ID is " + id )
+    if (id == "DA-1") {
+      log.info("Starting awarenessStatsStreamer")
+      awarenessStatsStreamerPrestart()
+    }
   }
 
   override def getLocalProcessorPath(): ActorPath = {
@@ -70,6 +79,8 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
   def receive = {
     daBehaviour
       .orElse[Any, Unit](connBehaviour)
+      .orElse[Any, Unit](networkAwarenessManagerReceiverBehaviour)
+      .orElse[Any, Unit](awarenessStatsStreamerBehaviour)
       .orElse[Any, Unit](ctlBehaviour)
       .orElse[Any, Unit](baseBehaviour)
       .orElse[Any, Unit](scklBehaviour)

@@ -7,9 +7,10 @@ import akka.cluster.Member
 import scala.concurrent.duration._
 
 import ClusteringConfig._
+import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerSenderBehaviour
 
 class FunctionProvisioner
-    extends ScklActor
+    extends NetworkAwarenessManagerSenderBehaviour
     {
 
   import Constants._
@@ -47,9 +48,9 @@ class FunctionProvisioner
         }
 
         log.debug("Sending to: -->" + sm + "<--")
-
-        context.actorSelection(sm) ! InfrastructureReady(infrastructure)
-
+        val serviceManager = context.actorSelection(sm)
+        serviceManager ! InfrastructureReady(infrastructure)
+        setupAwarenessManager(serviceManager)
       }
 
     case ReplaceFunction(af: String, sm: String) =>
@@ -73,6 +74,7 @@ class FunctionProvisioner
     case DARegistration(assetName: String) =>
       countMsg("scklmsg")
       assets = assets :+ (assetName, sender, true)
+      setupAwarenessManager(sender)
 
     case FPReady =>
       countMsg("scklmsg")

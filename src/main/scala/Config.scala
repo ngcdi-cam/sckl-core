@@ -27,4 +27,6 @@ object Config {
   val rightNgbName = config.getString("sckl.neighbour.right")
   val keyServices = config.getString("sckl.services").split(",").toSeq
   val ngbNames = config.getString("sckl.neighbours").split(",").toSeq
+
+  val awarenessServerUrl = config.getString("sckl.rest.awareness.url").split(",").toSeq
 }

@@ -48,8 +48,10 @@ trait DAController {
       time: String,
       metric: String
   ): Unit = {
-    context
-      .actorSelection(lViewPath) ! createRecord(node, flow, value, time, metric)
+    log.info("lViewPath = " + lViewPath)
+    log.info(s"sendToLocalView: $node $flow $value $time $metric")
+    if (lViewPath != null)
+      context.actorSelection(lViewPath) ! createRecord(node, flow, value, time, metric)
   }
 
   def createRecord(

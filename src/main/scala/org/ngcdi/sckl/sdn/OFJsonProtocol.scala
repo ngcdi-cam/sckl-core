@@ -319,3 +319,7 @@ object OFJsonProtocol extends DefaultJsonProtocol {
   }
 
 }
+
+// object AwarenessGraphStatsJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
+//   implicit val awarenessGraphStatsFormat = jsonFormat7(AwarenessGraphStats)
+// }

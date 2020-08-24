@@ -45,4 +45,6 @@ trait OFJsonSupport extends SprayJsonSupport {
 
   implicit val portStatsMapFormat =
     DefaultJsonProtocol.mapFormat[String, Set[org.ngcdi.sckl.model.PortStat]]
+
+  
 }

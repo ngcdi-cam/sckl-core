@@ -153,8 +153,7 @@
             "config": {
                 "home": "/usr/lib/jvm/java-11-openjdk-amd64",
                 "options": [
-                    "-Duser.dir=/home/peter/work/sckl-core",
-                    "--add-opens java.base/java.lang=ALL-UNNAMED"
+                    "-Duser.dir=/home/peter/work/sckl-core"
                 ]
             },
             "mainClass": [

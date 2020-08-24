@@ -8,12 +8,14 @@ import org.ngcdi.sckl.Config._
 import scala.concurrent.duration._
 
 import java.time.{ZoneOffset, LocalDateTime, Instant}
-import org.ngcdi.sckl.anomalydetector.CongestionAnomalyDetector
-import org.ngcdi.sckl.anomalydetector.AnomalyDetectorUtils
+import org.ngcdi.sckl.AnomalyMessages
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessManager
+import scala.util.Success
+import scala.util.Failure
 
 trait ServiceView {
 
-  this: ScklActor with AnomalyDetector =>
+  this: ScklActor =>
 
 //  import context._ //imports system
 
@@ -27,24 +29,24 @@ trait ServiceView {
   var lastReportTo: Instant =
     Instant.now()
 
-  val congestionAnomalyDetector = new CongestionAnomalyDetector(
-    // callback method on anomaly detected
-    { x =>
-      log.warning(s"!!! Detected congestion: $x")
-    } //, 
-    // do not detect before tick 2
-    //AnomalyDetectorUtils.beginDetectionSinceTick(2)
-    )
+//   val congestionAnomalyDetector = new CongestionAnomalyDetector(
+//     // callback method on anomaly detected
+//     { x =>
+//       log.warning(s"!!! Detected congestion: $x")
+//     } //,
+//     // do not detect before tick 2
+//     //AnomalyDetectorUtils.beginDetectionSinceTick(2)
+//     )
 
   def serviceViewPreStart(): Unit = {
     // restClient = context.actorOf(RESTClient.props(oRerouteUrl), name = "restClient")
-    anomalyDetectorPreStart()
+    // anomalyDetectorPreStart()
+
     triggerReporting()
     log.debug("FINISHED SV PRE-START!!!!")
   }
 
   def svBehaviour: Receive = {
-
     case AggregateLocalView(measurements: Seq[Measurement]) =>
       countMsg("scklmsg")
       doAggregateLocalViews(measurements)
@@ -72,7 +74,9 @@ trait ServiceView {
 
     log.debug("Received from " + measurements.head.neId + ": " + measurements)
     log.debug("Filtered Measurements: " + moi)
-    log.info(s"Received ${measurements.size} measurements from ${measurements.head.neId}")
+    log.info(
+      s"Received ${measurements.size} measurements from ${measurements.head.neId}"
+    )
 
     aggregatedView = aggregatedView ++ moi
 
@@ -120,7 +124,11 @@ trait ServiceView {
 
   def obtainReferenceSLAs(): Seq[ServiceLevel] = {
     val slas = Seq(
-      ServiceLevel(1, 200000, 300000, 100000, "bandwidth"),
+      ServiceLevel(1, 200000, 300000, 100000, awarenessBandwidth),
+      ServiceLevel(1, 200000, 300000, 100000, awarenessFreeBandwidth),
+      ServiceLevel(1, 200000, 300000, 100000, awarenessHop),
+      ServiceLevel(1, 200000, 300000, 100000, awarenessLatency),
+      ServiceLevel(1, 200000, 300000, 100000, awarenessThroughput),
       ServiceLevel(1, 200000, 300000, 100000, Temperature),
       ServiceLevel(1, 200000, 300000, 100000, OPT_POW),
       ServiceLevel(1, 200000, 300000, 100000, CPU_USG),
@@ -157,6 +165,7 @@ trait ServiceView {
   def monitorWindowSLAs(from: Instant, to: Instant): Unit = {
     nRuns = nRuns + 1
     log.debug("ticks==>" + nRuns)
+    var samples = Seq.empty[Measurement]
     slas.foreach { sc =>
       val a = sc.metricName
 
@@ -164,11 +173,16 @@ trait ServiceView {
 
       if (sample.size > 0) {
         //Process per device
-        runAnomalyDetection(nRuns, sample, a, sc.tolerance)
-        congestionAnomalyDetector.run(nRuns, sample, 5000.0)
+        // runAnomalyDetection(nRuns, sample, a, sc.tolerance)
+        // congestionAnomalyDetector.run(nRuns, sample, 5000.0)
+
+        // Processed by behaviour.AnomalyDetector
+        samples = samples ++ sample
+
         calculatePerService(sample, a, "s1")
       }
     }
+    self ! AnomalyMessages.NewProcessedMeasurements(nRuns, samples)
   }
 
   def calculatePerService(
