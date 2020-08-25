@@ -1,8 +1,6 @@
 package org.ngcdi.sckl
 import akka.actor._
 
-import org.ngcdi.sckl.ScklLogging
-
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
@@ -61,7 +59,6 @@ class LocalView(
       record(m)
       publish("ngcdi.da.sensed", m.metricName, "flow", m.resourceId, m.value)
     
-      
     case Report(cView: Seq[Measurement]) =>
       report(cView)
 

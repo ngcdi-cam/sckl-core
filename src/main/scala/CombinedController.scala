@@ -18,9 +18,9 @@ import org.ngcdi.sckl.behaviour.NetworkAwarenessStatsStreamerBehaviour
  */
 trait CombinedController
     // extends PortParser
-    extends FileController
-    // with RESTController 
-    // with NetworkAwarenessStatsStreamerBehaviour
+    extends ScklActor
+    with FileController
+    with NetworkAwarenessStatsStreamerBehaviour
     {
   this: DigitalAssetBase =>
 
@@ -30,6 +30,7 @@ trait CombinedController
     log.info("Starting Combined!!!")
     // super[RESTController].startSensors()
     super[FileController].startSensors()
+    awarenessStatsStreamerPrestart()
   }
 
   override def updateMeasurements(newMeasurements: Seq[Model]) = {
@@ -74,7 +75,7 @@ trait CombinedController
 
   override def ctlBehaviour = {
     super.ctlBehaviour
-      // .orElse[Any, Unit](parsingBehaviour)
+      .orElse[Any, Unit](awarenessStatsStreamerBehaviour)
       .orElse[Any, Unit] {
         case Link(linkFileName: String) =>
           linkViaCSV(linkFileName)

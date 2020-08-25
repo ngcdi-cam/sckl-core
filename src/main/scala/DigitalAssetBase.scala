@@ -21,11 +21,14 @@ import msgs._
 import Constants._
 import org.vca._
 import org.ngcdi.sckl.model._
+import org.ngcdi.sckl.behaviour.TargetPathsProvider
 
 abstract class DigitalAssetBase(id: String, localProcessor: ActorRef)
     extends ScklActor
     with DAController
-    with ConnectionBehaviour {
+    with ConnectionBehaviour
+    with TargetPathsProvider {
+  
   var lView: ActorRef = _
   var lViewPath: ActorPath = _
 
@@ -33,7 +36,6 @@ abstract class DigitalAssetBase(id: String, localProcessor: ActorRef)
     return localProcessor.path
   }
 
-  def getTargetPaths(): Seq[ActorPath]
 
   def startLocalView(): ActorRef = {
     log.info("EJECUTANDO START LOCAL VIEW")
@@ -65,5 +67,4 @@ abstract class DigitalAssetBase(id: String, localProcessor: ActorRef)
         stopTimer(x, "anomd")
       }
   }
-
 }

@@ -8,6 +8,12 @@ trait CombinedDetectorAndActuatorBehaviour
     with OverheatingAnomalyDetectorBehaviour
     with OverheatingAnomalyActuatorBehaviour {
   
+
+  def combinedDetectorAndActuatorPrestart() = {
+    overheatingAnomalyDetectorPrestart()
+    congestionAnomalyDetectorPrestart()
+  }
+  
   override def anomalyActuatorBehaviour: Receive = {
     super[OverheatingAnomalyActuatorBehaviour].anomalyActuatorBehaviour
     .orElse(

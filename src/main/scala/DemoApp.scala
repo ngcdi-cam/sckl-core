@@ -25,6 +25,8 @@ object DemoApp {
         DigiAssetLauncher.main(Array("port+file"))
       case "digiasset-intent" =>
         DigiAssetLauncher.main(Array("intent+file"))
+      case "digiAssetStandalone" =>
+        DigiAssetLauncher.main(Array("standalone"))
       case "functionProvisioner" =>
         FunctionProvisionerLauncher.main(Array.empty)
     }

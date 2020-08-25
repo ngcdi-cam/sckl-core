@@ -23,6 +23,9 @@ import msgs._
 import Constants._
 import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerReceiverBehaviour
 import org.ngcdi.sckl.behaviour.NetworkAwarenessStatsStreamerBehaviour
+import org.ngcdi.sckl.behaviour.EnvListNeighbouringBehaviour
+import org.ngcdi.sckl.behaviour.TargetPathsProvider
+import org.ngcdi.sckl.behaviour.CombinedDetectorAndActuatorBehaviour
 
 object DigitalAsset {
   def props(datype: String, id: String, localProcessor: ActorRef): Props = {
@@ -31,6 +34,13 @@ object DigitalAsset {
         Props(
           new DigitalAsset(id, localProcessor)
             with IntentCombinedController
+            with Remoting
+        )
+      case "standalone" =>
+        Props(
+          new DigitalAsset(id, localProcessor)
+            with CombinedController
+            with EnvListNeighbouringBehaviour
             with Remoting
         )
       case _ =>
@@ -48,39 +58,31 @@ object DigitalAsset {
 class DigitalAsset(id: String, localProcessor: ActorRef)
     extends DigitalAssetBase(id, localProcessor)
     with NetworkAwarenessManagerReceiverBehaviour
-    with NetworkAwarenessStatsStreamerBehaviour {
+    with TargetPathsProvider
+    with ServiceView
+    with CombinedDetectorAndActuatorBehaviour {
 
   var keyHosts: Seq[String] = _
-
-  var serviceManagers = IndexedSeq.empty[ActorRef]
 
   override def preStart(): Unit = {
     connPreStart()
     log.info("My ID is " + id )
-    if (id == "DA-1") {
-      log.info("Starting awarenessStatsStreamer")
-      awarenessStatsStreamerPrestart()
-    }
+    combinedDetectorAndActuatorPrestart()
+    neighbouringBehaviourPrestart()
+    serviceViewPreStart()
   }
 
   override def getLocalProcessorPath(): ActorPath = {
     return localProcessor.path
   }
 
-  override def getTargetPaths(): Seq[ActorPath] = {
-    val tp = serviceManagers.map(_.path).collect {
-      case tp: ActorPath => tp
-    }
-
-    log.debug("converted_tps:" + tp)
-    tp
-  }
-
   def receive = {
     daBehaviour
       .orElse[Any, Unit](connBehaviour)
+      .orElse(svBehaviour)
       .orElse[Any, Unit](networkAwarenessManagerReceiverBehaviour)
-      .orElse[Any, Unit](awarenessStatsStreamerBehaviour)
+      .orElse(anomalyActuatorBehaviour)
+      .orElse(anomalyDetectorBehaviour)
       .orElse[Any, Unit](ctlBehaviour)
       .orElse[Any, Unit](baseBehaviour)
       .orElse[Any, Unit](scklBehaviour)
@@ -91,19 +93,11 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
     case SenseFlow(kh) =>
       countMsg("scklmsg")
       log.info("Received Initialisation order from SM: " + sender)
-      if (!serviceManagers.contains(sender())) {
-        //context watch sender()
-        serviceManagers = serviceManagers :+ sender()
-      }
-      log.debug("serviceManagers==>" + serviceManagers)
-
+      addTargetPath(sender().path)
       keyHosts = kh
-
       log.debug("started_sensing:" + sensingStarted)
       if (!sensingStarted)
         startSensing()
-      else
-        lView ! UpdateTargets(Seq(sender.path))
 
     // Sense function Msgs
     case ReSense =>
