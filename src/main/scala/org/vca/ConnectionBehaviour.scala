@@ -12,7 +12,9 @@ import scala.concurrent.duration._
 import scala.collection.mutable.ListBuffer
 
 
-
+/*
+* Abstraction for all connection behaviours e.g. simple remoting or clustering.
+*/
 trait ConnectionBehaviour {
   def connPreStart(): Unit = {}
   val connBehaviour: Receive = Map.empty

@@ -13,6 +13,9 @@ import scala.concurrent.duration._
 import org.ngcdi.sckl.msgs._
 import org.vca._
 
+/*
+* This connection behaviour implements akka clusters framework to enable connection among actor/agents
+*/
 trait Clustering extends ConnectionBehaviour{
   this: ScklActor  =>
   val cluster = Cluster(context.system)
@@ -52,7 +55,7 @@ trait Clustering extends ConnectionBehaviour{
       functionProvisioner = sender()
   }
 
-
+  //Every node registers to the cluster with a role
   def register(member: Member): Unit ={
 
     //import scala.concurrent.ExecutionContext.Implicits.global

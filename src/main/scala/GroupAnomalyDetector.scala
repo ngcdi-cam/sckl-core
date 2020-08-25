@@ -8,9 +8,13 @@ import scala.util.{Failure, Success}
 import akka.actor._
 import scala.math.{abs}
 
-//Detects anomaly comparing within a group
+/*
+ * Detects an anomaly comparing the measurements sensed by one agent against those
+ * sensed by the rest of the group
+ */
 trait GroupAnomalyDetector extends AnomalyDetector {
 
+  // the SCKLActor should have an actuator to handle the anomaly detected.
   this: ScklActor with Actuator =>
 
   def isAllDigits(x: String): Boolean = x forall Character.isDigit
@@ -19,6 +23,11 @@ trait GroupAnomalyDetector extends AnomalyDetector {
     anomalyHandled = Map.empty
   }
 
+  /*
+   * From the given sample, it groups measurements per deviceId and
+   * calculates an aggreagated measurement per device to then compare it
+   * against aggregation of each other device. In this case the aggregation is the average.
+   */
   override def runAnomalyDetection(
       tick: Int,
       sample: Seq[Measurement],
@@ -39,7 +48,7 @@ trait GroupAnomalyDetector extends AnomalyDetector {
 
       if (agr._2 != Double.NaN && avgOthers != Double.NaN) {
         log.debug(
-          "==>Ag. Value for " + agr._1 + " is " + agr._2 + " - Others' value is: " + avgOthers + ", difference:  " + diff + " and threshold: " + threshold + "<=="
+          "==>Ag. Value for " + agr._1 + " is " + agr._2 + " - Others value is: " + avgOthers + ", difference:  " + diff + " and threshold: " + threshold + "<=="
         )
 
         if (diff < 0 && abs(diff) > threshold)
@@ -53,6 +62,10 @@ trait GroupAnomalyDetector extends AnomalyDetector {
 
   }
 
+  /*
+   * Triggers the action (from Actuator) for handling the anomaly and records that anomalys has
+   * been handled in the anomalyHandled map.
+   */
   override def processResultAD(
       tick: Int,
       deviceId: String,
@@ -108,6 +121,9 @@ trait GroupAnomalyDetector extends AnomalyDetector {
     }
   }
 
+  /*
+   * Calculate aggreated measurements from the other devices (the complement of each device)
+   */
   def calculateOthers(
       sample: Seq[Measurement],
       metricName: String
@@ -133,6 +149,9 @@ trait GroupAnomalyDetector extends AnomalyDetector {
     deviceGroup
   }
 
+  /*
+   * Calculate the aggregate measurement for each device
+   */
   def calculatePerDevice(
       sample: Seq[Measurement],
       metricName: String
@@ -157,4 +176,18 @@ trait GroupAnomalyDetector extends AnomalyDetector {
 
     deviceGroup
   }
+
+  /*
+   * Convert timestamps of the sample to strings
+   */
+  def obtainTimestamptsSample(
+      sample: Seq[Measurement]
+  ): Seq[Tuple2[String, String]] = {
+    val timeStamps = sample
+      .map(m => Tuple2(m.neId, m.nanos.toString()))
+      .collect { case t: Tuple2[String, String] => t }
+      .toSeq
+    timeStamps
+  }
+
 }
