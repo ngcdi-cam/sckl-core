@@ -8,7 +8,7 @@ import org.ngcdi.sckl.Config._
 import org.ngcdi.sckl.sdn._
 import org.ngcdi.sckl.adm._
 import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerReceiverBehaviour
-import org.ngcdi.sckl.behaviour.CombinedDetectorAndActuatorBehaviour
+import org.ngcdi.sckl.behaviour.SimpleCombinedDetectorAndActuatorBehaviour
 
 /*
 * Companion object for actor class. It matches incoming parameter from ServiceManagerLauncher
@@ -36,7 +36,7 @@ class ServiceManagerSimple()
     with Remoting
     with ServiceView
     // with GroupAnomalyDetector
-    with CombinedDetectorAndActuatorBehaviour
+    with SimpleCombinedDetectorAndActuatorBehaviour
     // with NetworkAwarenessStatsStreamerBehaviour
     // with RESTServiceActuator
     // with PredictiveAnalytics

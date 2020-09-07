@@ -40,14 +40,18 @@ final case class RyuFlowStat(
 ) extends Model
 
 final case class RyuPortStat(
-    //rx_packets:Long,
+    rx_packets: Long,
     rx_bytes: Long,
-    //tx_packets:Long,
+    tx_packets: Long,
     tx_bytes: Long,
-    duration_sec: Long,
-    //rx_errors:Long,
-    //tx_errors:Long,
-    port_no: String
+    rx_errors: Long,
+    tx_errors: Long,
+    rx_dropped: Long,
+    tx_dropped: Long,
+    // port_no: Option[Int]
 ) extends Model
 
-
+final case class RyuSwitchStat(
+  dpid: Int,
+  metrics: Map[String, Double]
+)

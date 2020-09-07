@@ -22,10 +22,13 @@ import ClusteringConfig._
 import msgs._
 import Constants._
 import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerReceiverBehaviour
-import org.ngcdi.sckl.behaviour.NetworkAwarenessStatsStreamerBehaviour
-import org.ngcdi.sckl.behaviour.EnvListNeighbouringBehaviour
-import org.ngcdi.sckl.behaviour.TargetPathsProvider
-import org.ngcdi.sckl.behaviour.CombinedDetectorAndActuatorBehaviour
+import org.ngcdi.sckl.behaviour.neighbouring.EnvListNeighbouringBehaviour
+import org.ngcdi.sckl.behaviour.neighbouring.TargetPathsProvider
+import org.ngcdi.sckl.behaviour.SimpleCombinedDetectorAndActuatorBehaviour
+import org.ngcdi.sckl.behaviour.neighbouring.AwarenessNeighbouringBehaviour
+import org.ngcdi.sckl.behaviour.forwarder.MessageForwardingBehaviour
+import org.ngcdi.sckl.behaviour.awareness.AwarenessServiceManagerBehaviour
+import org.ngcdi.sckl.behaviour.FlowCombinedDetectorAndActuatorBehaviour
 
 object DigitalAsset {
   def props(datype: String, id: String, localProcessor: ActorRef): Props = {
@@ -40,7 +43,8 @@ object DigitalAsset {
         Props(
           new DigitalAsset(id, localProcessor)
             with CombinedController
-            with EnvListNeighbouringBehaviour
+            // with EnvListNeighbouringBehaviour
+            with AwarenessNeighbouringBehaviour
             with Remoting
         )
       case _ =>
@@ -60,16 +64,19 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
     with NetworkAwarenessManagerReceiverBehaviour
     with TargetPathsProvider
     with ServiceView
-    with CombinedDetectorAndActuatorBehaviour {
+    with FlowCombinedDetectorAndActuatorBehaviour
+    // with SimpleCombinedDetectorAndActuatorBehaviour
+    with MessageForwardingBehaviour
+    with AwarenessServiceManagerBehaviour {
 
   var keyHosts: Seq[String] = _
 
   override def preStart(): Unit = {
     connPreStart()
-    log.info("My ID is " + id )
     combinedDetectorAndActuatorPrestart()
     neighbouringBehaviourPrestart()
     serviceViewPreStart()
+    awarenessServiceManagerPrestart()
   }
 
   override def getLocalProcessorPath(): ActorPath = {
@@ -78,11 +85,13 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
 
   def receive = {
     daBehaviour
+      .orElse(messageForwardingBehaviour)
       .orElse[Any, Unit](connBehaviour)
       .orElse(svBehaviour)
       .orElse[Any, Unit](networkAwarenessManagerReceiverBehaviour)
       .orElse(anomalyActuatorBehaviour)
       .orElse(anomalyDetectorBehaviour)
+      .orElse(awarenessServiceManagerBehaviour)
       .orElse[Any, Unit](ctlBehaviour)
       .orElse[Any, Unit](baseBehaviour)
       .orElse[Any, Unit](scklBehaviour)

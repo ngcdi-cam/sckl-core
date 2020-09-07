@@ -2,7 +2,7 @@ package org.ngcdi.sckl.behaviour
 
 import org.ngcdi.sckl.AnomalyMessages.NewProcessedMeasurements
 
-trait CombinedDetectorAndActuatorBehaviour
+trait SimpleCombinedDetectorAndActuatorBehaviour
     extends CongestionAnomalyDetectorBehaviour
     with CongestionAnomalyActuatorBehaviour
     with OverheatingAnomalyDetectorBehaviour

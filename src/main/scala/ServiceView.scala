@@ -12,13 +12,14 @@ import org.ngcdi.sckl.AnomalyMessages
 import org.ngcdi.sckl.ryuclient.NetworkAwarenessManager
 import scala.util.Success
 import scala.util.Failure
+import org.ngcdi.sckl.behaviour.awareness.NetworkAwarenessSwitchProvider
 
 /*
  * This trait implements the generation of a service view with the measurements
  * collected by the DigitalAsset agents
  *
  */
-trait ServiceView {
+trait ServiceView extends NetworkAwarenessSwitchProvider {
 
   this: ScklActor =>
 
@@ -65,9 +66,16 @@ trait ServiceView {
   }
 
   def doAggregateLocalViews(measurements: Seq[Measurement]) = {
-    val moi = measurements 
-      .filter(_.neId ==  ClusteringConfig.nodeName)
-    
+    val moi = measurements
+      .filter { measurement =>
+        val resourceId = measurement.resourceId.split(":")
+        measurement.neId == ClusteringConfig.nodeName || 
+          (resourceId.length == 2 && 
+            (resourceId(0).toInt == awarenessSwitchId || 
+            resourceId(1).toInt == awarenessSwitchId))
+      }
+    // .filter(_.neId ==  ClusteringConfig.nodeName)
+
     // .foldLeft[Seq[Measurement]](Seq.empty) { (ac, m) =>
     //   if (
     //     soi
@@ -156,6 +164,7 @@ trait ServiceView {
       ServiceLevel(1, 200000, 300000, 100000, awarenessHop),
       ServiceLevel(1, 200000, 300000, 100000, awarenessLatency),
       ServiceLevel(1, 200000, 300000, 100000, awarenessThroughput),
+      ServiceLevel(1, 200000, 300000, 100000, awarenessFlowThroughput),
       ServiceLevel(1, 200000, 300000, 100000, Temperature),
       ServiceLevel(1, 200000, 300000, 100000, OPT_POW),
       ServiceLevel(1, 200000, 300000, 100000, CPU_USG),

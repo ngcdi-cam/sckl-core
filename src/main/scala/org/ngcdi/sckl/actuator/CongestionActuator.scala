@@ -13,14 +13,11 @@ class CongestionActuator(servicesToInstall: Seq[NetworkAwarenessService])(
 
   override def triggerAction(
       anomaly: AwarenessCongestionAnomalyDetectionResult
-  )(implicit actorSystem: ActorSystem, awarenessManager: NetworkAwarenessManager): Future[Boolean] = {
+  )(implicit actorSystem: ActorSystem, awarenessManager: Future[NetworkAwarenessManager]): Future[Boolean] = {
     val controllerId = 0 // TODO: get controller ID from anomalyDetectionResult
-    if (awarenessManager == null) {
-      actorSystem.log.warning("Awareness manager not ready, not triggering action")
-      Future.failed(new Exception("Awareness manager not ready, not triggering action"))
-    }
-    else {
-      awarenessManager.installServices(servicesToInstall, controllerId)
-    }
+    for {
+      manager <- awarenessManager
+      result <- manager.installServices(servicesToInstall, controllerId)
+    } yield result
   }
 }

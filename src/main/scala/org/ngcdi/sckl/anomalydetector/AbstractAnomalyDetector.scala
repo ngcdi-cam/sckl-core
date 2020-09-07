@@ -10,7 +10,10 @@ object SingleAnomaly extends AnomalyKind
 object GroupAnomaly extends AnomalyKind
 object UndefinedAnomaly extends AnomalyKind
 
-abstract class AbstractAnomalyDetector[O, R <: AnomalyDetectionResult](onFailure: R => Unit = { (x: R) => Unit }, filter: Int => Boolean = { x => true }) {
+abstract class AbstractAnomalyDetector[O, R <: AnomalyDetectionResult](
+    onFailure: R => Unit = AnomalyDetectorUtils.noHandleFailure,
+    filter: Int => Boolean = AnomalyDetectorUtils.noFilter
+) {
   val name: String = "UnnamedDetector"
   val kind: AnomalyKind = UndefinedAnomaly
 

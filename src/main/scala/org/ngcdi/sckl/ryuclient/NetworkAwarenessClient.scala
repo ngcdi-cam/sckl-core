@@ -12,8 +12,18 @@ import akka.http.scaladsl.model.RequestEntity
 // import spray.json.DefaultJsonProtocol
 
 trait NetworkAwarenessJsonSupport {
-  @transient lazy implicit val statEntryFormat = jsonFormat5(NetworkAwarenessStatEntry);
-  @transient lazy implicit val serviceFormat = jsonFormat4(NetworkAwarenessService)
+  @transient lazy implicit val statEntryFormat = jsonFormat5(
+    NetworkAwarenessStatEntry
+  );
+  @transient lazy implicit val flowEntryFormat = jsonFormat9(
+    NetworkAwarenessFlowEntry
+  );
+  @transient lazy implicit val serviceFormat = jsonFormat4(
+    NetworkAwarenessService
+  )
+  @transient lazy implicit val accessTableEntryFormat = jsonFormat4(
+    NetworkAwarenessAccessTableEntry
+  )
   @transient lazy implicit val linkFormat = jsonFormat4(NetworkAwarenessLink)
 }
 
@@ -21,7 +31,7 @@ class NetworkAwarenessClient(baseUrl: String)
     extends SimpleRestClient(baseUrl)
     with Serializable
     with NetworkAwarenessJsonSupport {
-  
+
   final def getBaseUrl(): String = baseUrl
 
   final def getStats(implicit
@@ -33,6 +43,34 @@ class NetworkAwarenessClient(baseUrl: String)
       statsOrig <-
         Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessStatEntry]]]
       stats <- Future { statsOrig.get("graph").get.toSeq }
+    } yield stats
+  }
+
+  final def getSwitchStats(dpid: Int, filter: Boolean = false)(implicit
+      ec: ExecutionContext,
+      actorSystem: ActorSystem
+  ): Future[Seq[NetworkAwarenessStatEntry]] = {
+    for {
+      httpResponse <- httpGet(
+        s"/awareness/stats/$dpid" + (if (filter) "?filter" else "")
+      )
+      statsOrig <-
+        Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessStatEntry]]]
+      stats <- Future { statsOrig.get("graph").get.toSeq }
+    } yield stats
+  }
+
+  final def getSwitchFlows(dpid: Int, filter: Boolean = false)(implicit
+      ec: ExecutionContext,
+      actorSystem: ActorSystem
+  ): Future[Seq[NetworkAwarenessFlowEntry]] = {
+    for {
+      httpResponse <- httpGet(
+        s"/awareness/flows/$dpid" + (if (filter) "?filter" else "")
+      )
+      statsOrig <-
+        Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessFlowEntry]]]
+      stats <- Future { statsOrig.get("flows").get.toSeq }
     } yield stats
   }
 
@@ -106,19 +144,25 @@ class NetworkAwarenessClient(baseUrl: String)
     for {
       httpResponse <- httpGet("/awareness/services")
       servicesOrig <-
-        Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessService]]]
-      services <- Future { servicesOrig.get("services").get }
+        Unmarshal(httpResponse).to[Map[String, Map[String, NetworkAwarenessService]]]
+      services <- Future { servicesOrig.get("services").get.values.toSeq }
     } yield services
   }
 
-  final def setServices(services: Seq[NetworkAwarenessService])(implicit
+  final def setServices(
+      services: Seq[NetworkAwarenessService],
+      flush: Boolean = false
+  )(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
   ): Future[Boolean] = {
     for {
       httpRequestEntity <-
         Marshal(Map("services" -> services)).to[RequestEntity]
-      httpResponse <- httpPost("/awareness/services", httpRequestEntity)
+      httpResponse <- {
+        val httpRequest = if (flush) httpPost _ else httpPatch _
+        httpRequest("/awareness/services", httpRequestEntity)
+      }
       success <- NetworkAwarenessClientUtils.isSuccessful(httpResponse)
     } yield success
   }
@@ -133,5 +177,17 @@ class NetworkAwarenessClient(baseUrl: String)
         Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessLink]]]
       links <- Future { linksOrig.get("links").get }
     } yield links
+  }
+
+  final def getAccessTable(implicit
+      ec: ExecutionContext,
+      actorSystem: ActorSystem
+  ): Future[Seq[NetworkAwarenessAccessTableEntry]] = {
+    for {
+      httpResponse <- httpGet("/awareness/access_table")
+      entriesOrig <- Unmarshal(httpResponse)
+        .to[Map[String, Seq[NetworkAwarenessAccessTableEntry]]]
+      entries <- Future { entriesOrig.get("access_table").get }
+    } yield entries
   }
 }

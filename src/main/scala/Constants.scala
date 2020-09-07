@@ -173,6 +173,32 @@ object Constants {
     awarenessHop
   )
 
+  val awarenessFlowThroughput = "flow_throughput"
+
+  // ==========================
+  // Network Awareness Services
+  // ==========================
+
+  val awarenessServices = Seq(
+    NetworkAwarenessService(0, "10.0.0.1", "10.0.0.2", Map(
+      awarenessFreeBandwidth -> 0.001,
+      awarenessLatency -> 0.999
+    ))
+  )
+
+  // ================
+  // Ryu Metric Types
+  // ================
+  
+  val ryuRxPackets = "rx_packets"
+  val ryuTxPackets = "tx_packets"
+  val ryuRxBytes = "rx_bytes"
+  val ryuTxBytes = "tx_bytes"
+  val ryuRxDropped = "rx_dropped"
+  val ryuTxDropped = "tx_dropped"
+  val ryuRxErrors = "rx_errors"
+  val ryuTxErrors = "tx_errors"
+
   // ===============================
   // Anomaly Detectors and Actuators
   // ===============================
@@ -188,22 +214,21 @@ object Constants {
 
   // Congestion Detector
   val congestionDetectorThreshold = 0.5 // proportion of bandwidth
+  val congestionDetectorFlowThreshold = 0.2
 
   // Congestion Actuator
-  val servicesToInstall = Seq(
-    NetworkAwarenessService(0, -1, -1, Map(
-      awarenessFreeBandwidth -> 0.001,
-      awarenessLatency -> 0.999
-    ))
-  )
+  val servicesToInstall = awarenessServices
 
   // ================================
   // Network Awareness Stats Streamer
   // ================================
 
-  val awarenessStatsStreamerSenseInterval = DurationInt(5).second
+  val awarenessStatsStreamerSenseInterval = 5 seconds
 
-  
+  // ==================
+  // Message Forwarding
+  // ==================
 
-  
+  val messageForwardingInitialTtl = 1
+  val messageForwardingIdQueueMaxSize = 10
 }

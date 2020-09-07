@@ -28,3 +28,7 @@ object AwarenessMessages {
 
   object DoGetAwarenessStats
 }
+
+object ForwardingMessages {
+  case class ForwardedMessage(id: Long, ttl: Int, hops: Int, message: Object)
+}

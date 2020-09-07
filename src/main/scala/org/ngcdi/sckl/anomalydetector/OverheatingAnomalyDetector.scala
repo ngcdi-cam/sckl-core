@@ -9,10 +9,10 @@ case class OverheatingAnomalyDetectionResult(
 ) extends AnomalyDetectionResult
 
 class OverheatingAnomalyDetector(
-    onFailure: OverheatingAnomalyDetectionResult => Unit = { x =>
-      Unit
-    },
-    filter: Int => Boolean = { x => true }
+    onFailure: OverheatingAnomalyDetectionResult => Unit =
+      AnomalyDetectorUtils.noHandleFailure,
+    
+    filter: Int => Boolean = AnomalyDetectorUtils.noFilter
 ) extends AbstractAnomalyDetector[Double, OverheatingAnomalyDetectionResult](
       onFailure,
       filter
@@ -34,7 +34,6 @@ class OverheatingAnomalyDetector(
       )
       .map { x => Tuple2(x.neId.toInt, x.value) }
       .toMap
-
 
     if (overheatedSwitches.size == 0) {
       None

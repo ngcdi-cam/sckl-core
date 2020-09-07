@@ -21,7 +21,7 @@ import msgs._
 import Constants._
 import org.vca._
 import org.ngcdi.sckl.model._
-import org.ngcdi.sckl.behaviour.TargetPathsProvider
+import org.ngcdi.sckl.behaviour.neighbouring.TargetPathsProvider
 
 abstract class DigitalAssetBase(id: String, localProcessor: ActorRef)
     extends ScklActor

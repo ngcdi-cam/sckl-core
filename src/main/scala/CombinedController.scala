@@ -8,7 +8,10 @@ import org.ngcdi.sckl.model._
 import org.ngcdi.sckl.sdn._
 import org.ngcdi.sckl.NetworkUtils._
 import org.ngcdi.sckl.ryuclient.NetworkAwarenessStatEntry
-import org.ngcdi.sckl.behaviour.NetworkAwarenessStatsStreamerBehaviour
+import org.ngcdi.sckl.behaviour.NetworkAwarenessStatsSensorBehaviour
+import org.ngcdi.sckl.behaviour.NetworkAwarenessSwitchStatsSensorBehaviour
+import org.ngcdi.sckl.behaviour.NetworkAwarenessSwitchFlowsSensorBehaviour
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessFlowEntry
 
 //final case class ProcessResponse(entityStr:String,entity:ResponseEntity)
 //final case class ProcessResponse(entity:String)
@@ -20,7 +23,9 @@ trait CombinedController
     // extends PortParser
     extends ScklActor
     with FileController
-    with NetworkAwarenessStatsStreamerBehaviour
+    // with NetworkAwarenessStatsSensorBehaviour
+    with NetworkAwarenessSwitchStatsSensorBehaviour
+    with NetworkAwarenessSwitchFlowsSensorBehaviour
     {
   this: DigitalAssetBase =>
 
@@ -30,7 +35,8 @@ trait CombinedController
     log.info("Starting Combined!!!")
     // super[RESTController].startSensors()
     super[FileController].startSensors()
-    awarenessStatsStreamerPrestart()
+    super[NetworkAwarenessSwitchStatsSensorBehaviour].sensorPrestart()
+    super[NetworkAwarenessSwitchFlowsSensorBehaviour].sensorPrestart()
   }
 
   override def updateMeasurements(newMeasurements: Seq[Model]) = {
@@ -67,6 +73,9 @@ trait CombinedController
             case (metric, value) =>
               sendToLocalView(nodeName, flow, value, now, metric)
           }
+        case nf: NetworkAwarenessFlowEntry =>
+          val flow = s"${nf.src}:${nf.dst}:${nf.src_ip}:${nf.dst_ip}:${nf.src_ip_dpid}:${nf.dst_ip_dpid}"
+          sendToLocalView(nodeName, flow, nf.throughput, now, awarenessFlowThroughput)
         case _ =>
       }
 
@@ -75,7 +84,7 @@ trait CombinedController
 
   override def ctlBehaviour = {
     super.ctlBehaviour
-      .orElse[Any, Unit](awarenessStatsStreamerBehaviour)
+      // .orElse[Any, Unit](awarenessStatsSensorBehaviour)
       .orElse[Any, Unit] {
         case Link(linkFileName: String) =>
           linkViaCSV(linkFileName)

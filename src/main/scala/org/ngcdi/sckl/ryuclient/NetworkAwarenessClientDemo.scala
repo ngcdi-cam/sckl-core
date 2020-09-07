@@ -2,6 +2,8 @@ package org.ngcdi.sckl.ryuclient
 
 import akka.actor.ActorSystem
 import scala.concurrent.Future
+import scala.util.{ Success, Failure }
+import org.ngcdi.sckl.Constants
 
 object NetworkAwarenessClientDemo {
     def main(args: Array[String]): Unit = {
@@ -9,11 +11,18 @@ object NetworkAwarenessClientDemo {
         implicit val executionContext = system.getDispatcher
         val log = system.log
         
-        val client: NetworkAwarenessClient = new NetworkAwarenessClient("http://localhost:8080")
+        val client: NetworkAwarenessClient = new NetworkAwarenessClient("http://172.18.0.2:8080")
+
         
         (for {
+            accessTableRaw <- client.getAccessTable
+            _ <- Future { log.info("Access table: " + accessTableRaw) }
+            switchFlows <- client.getSwitchFlows(3)
+            _ <- Future { log.info("Flows: " + switchFlows) }
             stats <- client.getStats
             _ <- Future { log.info("Stats: " + stats) }
+            switchStats <- client.getSwitchStats(1, true)
+            _ <- Future { log.info("Switch 1 stats: " + switchStats)}
             links <- client.getLinks
             _ <- Future { log.info("Links: " + links) }
             switchWeightsOld <- client.getSwitchWeights
@@ -26,9 +35,16 @@ object NetworkAwarenessClientDemo {
             success2 <- client.setDefaultMetricWeights(Map("free_bandwidth" -> 0.9, "delay" -> 1.1))
             defaultMetricWeightsNew <- client.getDefaultMetricWeights
             _ <- Future { log.info("New default metric weights: " + defaultMetricWeightsNew) }
-        } yield links).foreach { links => 
+            success3 <- client.setServices(Constants.awarenessServices)
+            servicesRaw <- client.getServices
+            _ <- Future { log.info("Services: " + servicesRaw)}
+        } yield Tuple2(links, accessTableRaw)).onComplete { 
+          case Success(Tuple2(links, accessTableRaw)) => 
+  
             // val topo = NetworkAwarenessTopology.fromStats(stats, 0)
             val topo = NetworkAwarenessTopology.fromLinks(links, 0)
+            val accessTable = NetworkAwarenessAccessTable(accessTableRaw, topo)
+
             val switch1 = topo.switches.get(1).get
             val switch2 = topo.switches.get(2).get
 
@@ -37,6 +53,9 @@ object NetworkAwarenessClientDemo {
 
             log.info("Switch 2: " + switch2)
             log.info("Switch 2 Peers: " + switch2.getPeers)
+            log.info("Access table: " + accessTable)
+          case Failure(exception) =>
+            log.error("Error: " + exception)
         }
     }
 }

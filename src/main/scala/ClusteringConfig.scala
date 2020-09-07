@@ -2,8 +2,6 @@ package org.ngcdi.sckl
 
 import com.typesafe.config.ConfigFactory
 
-
-
 object ClusteringConfig {
   private val config = ConfigFactory.load()
   val nodeIp = config.getString("clustering.ip")

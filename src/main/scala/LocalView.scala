@@ -14,6 +14,9 @@ import kamon.Kamon
 import ClusteringConfig._
 import msgs._
 import Constants._
+import org.ngcdi.sckl.behaviour.neighbouring.TargetPathsProvider
+import org.ngcdi.sckl.behaviour.forwarder.MessageForwardingBehaviour
+import scala.util.Random
 
 final case class UpdateTargets(newTargets: Seq[ActorPath])
 
@@ -29,11 +32,12 @@ class LocalView(
     consolidateAtSeconds: Int,
     initialTargetPaths: Seq[ActorPath],
     localProcessorPath: ActorPath
-) extends ScklActor {
+) extends ScklActor
+    with TargetPathsProvider
+    with MessageForwardingBehaviour {
 
   var msgTypeCount: Map[String, Counter] = _
   var view: ListBuffer[Measurement] = _
-  var targetPaths: Seq[ActorPath] = _
 
   override def preStart() = {
     view = new ListBuffer[Measurement]
@@ -42,12 +46,15 @@ class LocalView(
       self,
       Consolidate
     )
-    targetPaths = initialTargetPaths
-    log.debug("Finished pre-start of actor" + targetPaths)
+    neighbours = initialTargetPaths
+    log.debug("Finished pre-start of actor" + getTargetPaths())
   }
 
-  def receive = {
+  def receive: Receive = {
+    localViewBehaviour().orElse(messageForwardingBehaviour)
+  }
 
+  def localViewBehaviour(): Receive = {
     // Sense Functions
 
     case s: String =>
@@ -55,10 +62,10 @@ class LocalView(
       log.debug("My path:" + self)
       log.debug("sender: " + sender)
       log.debug("Existing Keys: {}", msgTypeCount)
-      log.debug("value of smp:" + targetPaths)
+      log.debug("value of smp:" + getTargetPaths())
       record(m)
       publish("ngcdi.da.sensed", m.metricName, "flow", m.resourceId, m.value)
-    
+
     case Report(cView: Seq[Measurement]) =>
       report(cView)
 
@@ -66,8 +73,8 @@ class LocalView(
       consolidate()
 
     case UpdateTargets(newTargets: Seq[ActorPath]) =>
-      targetPaths = targetPaths ++ newTargets
-      log.debug("New target paths:" + targetPaths)
+      addTargetPaths(newTargets)
+      log.debug("New target paths:" + getTargetPaths())
   }
 
   /*
@@ -131,7 +138,9 @@ class LocalView(
     val currentView = view.toSeq
     context.actorSelection(localProcessorPath) ! currentView
     view.clear()
-    log.info("Message sent for consolidation " + localProcessorPath + " --> " + currentView)
+    log.info(
+      "Message sent for consolidation " + localProcessorPath + " --> " + currentView
+    )
   }
 
   /*
@@ -140,11 +149,20 @@ class LocalView(
 
   def report(cView: Seq[Measurement]) = {
     if (!cView.isEmpty) {
-      log.debug("targetPaths:" + targetPaths)
-      targetPaths.foreach { tp =>
-        context.actorSelection(tp) ! AggregateLocalView(cView)
-        log.info("Message sent to aggregator:" + tp + " --> " + cView)
-      }
+      log.debug("targetPaths:" + getTargetPaths())
+
+      // targetPaths.foreach { tp =>
+      //   context.actorSelection(tp) ! AggregateLocalView(cView)
+      //   log.info("Message sent to aggregator:" + tp + " --> " + cView)
+      // }
+      val message = AggregateLocalView(cView)
+      self ! ForwardingMessages.ForwardedMessage(
+        Random.nextLong(),
+        Constants.messageForwardingInitialTtl,
+        0,
+        message
+      )
+
     } else {
       log.info("Nothing to report to SM...")
     }
