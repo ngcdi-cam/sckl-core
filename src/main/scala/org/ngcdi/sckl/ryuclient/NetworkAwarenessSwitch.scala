@@ -2,18 +2,22 @@ package org.ngcdi.sckl.ryuclient
 
 import scala.collection.mutable
 
+sealed trait NetworkAwarenessNode // switch or host
+
 class NetworkAwarenessSwitch(
     _controllerId: Int,
     _dpid: Int,
-    _ports: => Map[Int, NetworkAwarenessSwitch] = Map.empty
-) extends Serializable {
+    _ports: => Map[Int, NetworkAwarenessNode] = Map.empty
+) extends Serializable
+    with NetworkAwarenessNode {
+
   val controllerId = _controllerId
   val dpid = _dpid
 
   override def hashCode(): Int = {
     controllerId ^ dpid
   }
-  
+
   override def equals(x: Any): Boolean = {
     x match {
       case s: NetworkAwarenessSwitch =>
@@ -22,16 +26,27 @@ class NetworkAwarenessSwitch(
         false
     }
   }
-  
-  var ports = mutable.Map.empty[Int, NetworkAwarenessSwitch] ++= _ports
 
-  def getPeers: Seq[NetworkAwarenessSwitch] = {
+  var ports = mutable.Map.empty[Int, NetworkAwarenessNode] ++= _ports
+
+  def getPeers: Seq[NetworkAwarenessNode] = {
     ports.values.toSeq
+  }
+
+  def getPeerSwitches: Seq[NetworkAwarenessSwitch] = {
+    getPeers.collect { case x: NetworkAwarenessSwitch => x }.toSeq
   }
 
   def getPorts: Seq[Int] = {
     ports.keySet.toSeq
   }
 
-  override def toString(): String = s"Switch($controllerId, $dpid, ports = ${ports.keySet})"
+  override def toString(): String =
+    s"Switch($controllerId, $dpid, ports = ${ports.keySet})"
 }
+
+case class NetworkAwarenessHost(
+    ip: String,
+    mac: String,
+    link: NetworkAwarenessNode
+) extends NetworkAwarenessNode

@@ -79,6 +79,12 @@ libraryDependencies += "com.slack.api" % "slack-api-model" % "1.0.6"
 libraryDependencies += "com.slack.api" % "slack-api-client" % "1.0.6"
 libraryDependencies += "com.slack.api" % "slack-app-backend" % "1.0.6"
 
+// Scala Graph
+
+// libraryDependencies += "org.scala-graph" %% "graph-core" % "1.13.1"
+
+libraryDependencies += "org.jgrapht" % "jgrapht-core" % "1.5.0"
+
 //Figaro
 //libraryDependencies += "com.cra.figaro" %% "figaro" % "5.0.0.0"
 

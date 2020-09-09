@@ -14,5 +14,5 @@ case class NetworkAwarenessController(
     id: Int,
     client: NetworkAwarenessClient,
     topology: NetworkAwarenessTopology,
-    accessTable: NetworkAwarenessAccessTable
+    // accessTable: NetworkAwarenessAccessTable
 )

@@ -20,9 +20,10 @@ trait AwarenessServiceManagerBehaviour
       switch <- awarenessSwitch
       _ <- Future {
         val controllerId = switch.controllerId
-        val accessTable = manager.controllers(controllerId).accessTable
-        log.info("Access table is " + accessTable)
-        val hostIps = accessTable.hosts.filter(_._2 == switch).map(_._1).toSeq
+        val hosts = manager.controllers(controllerId).topology.hosts
+        // val accessTable = manager.controllers(controllerId).accessTable
+        log.info("Hosts are " + hosts)
+        val hostIps = hosts.filter(_.link == switch).map(_.ip).toSeq
         val managedServices = hostIps.flatMap(
           NetworkAwarenessUtils.lookUpServiceByIp(
             Constants.awarenessServices,

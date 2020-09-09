@@ -1,6 +1,7 @@
 package org.ngcdi.sckl
 import scala.concurrent.duration._
 import org.ngcdi.sckl.ryuclient.NetworkAwarenessService
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessCrossDomainLink
 //import ClusteringConfig._
 
 object Constants {
@@ -175,15 +176,37 @@ object Constants {
 
   val awarenessFlowThroughput = "flow_throughput"
 
-  // ==========================
-  // Network Awareness Services
-  // ==========================
+  // ======================================
+  // Network Awareness Services and Weights
+  // ======================================
 
   val awarenessServices = Seq(
     NetworkAwarenessService(0, "10.0.0.1", "10.0.0.2", Map(
       awarenessFreeBandwidth -> 0.001,
       awarenessLatency -> 0.999
     ))
+  )
+
+  // Network Awareness Default Metric Weights
+  val awarenessDefaultWeights = Map(
+    awarenessFreeBandwidth -> 1.0,
+    awarenessLatency -> 0.0,
+    awarenessHop -> 0.0
+  )
+
+  // Network Awareness Enabled Metrics
+  val awarenessEnabledMetrics = Seq(
+    awarenessFreeBandwidth,
+    awarenessLatency,
+    awarenessHop
+  )
+  
+  // ============================
+  // Network Awareness Edge Links
+  // ============================
+
+  val awarenessEdgeLinks = Seq(
+    NetworkAwarenessCrossDomainLink(0, 0, 0, 1, 1, 1)
   )
 
   // ================

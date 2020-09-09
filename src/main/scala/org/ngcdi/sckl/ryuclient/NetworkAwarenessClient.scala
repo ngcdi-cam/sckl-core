@@ -8,6 +8,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import scala.concurrent.Future
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.RequestEntity
+import akka.http.scaladsl.server.util.Tuple
 // import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 // import spray.json.DefaultJsonProtocol
 
@@ -24,7 +25,15 @@ trait NetworkAwarenessJsonSupport {
   @transient lazy implicit val accessTableEntryFormat = jsonFormat4(
     NetworkAwarenessAccessTableEntry
   )
-  @transient lazy implicit val linkFormat = jsonFormat4(NetworkAwarenessLink)
+  @transient lazy implicit val linkFormat = jsonFormat4(
+    NetworkAwarenessLink
+  )
+  @transient lazy implicit val pathInfoFormat = jsonFormat4(
+    NetworkAwarenessPathInfo
+  )
+  @transient lazy implicit val accessTableEntryPinning = jsonFormat3(
+    NetworkAwarenessAccessTableEntryPinning
+  )
 }
 
 class NetworkAwarenessClient(baseUrl: String)
@@ -143,8 +152,8 @@ class NetworkAwarenessClient(baseUrl: String)
   ): Future[Seq[NetworkAwarenessService]] = {
     for {
       httpResponse <- httpGet("/awareness/services")
-      servicesOrig <-
-        Unmarshal(httpResponse).to[Map[String, Map[String, NetworkAwarenessService]]]
+      servicesOrig <- Unmarshal(httpResponse)
+        .to[Map[String, Map[String, NetworkAwarenessService]]]
       services <- Future { servicesOrig.get("services").get.values.toSeq }
     } yield services
   }
@@ -189,5 +198,33 @@ class NetworkAwarenessClient(baseUrl: String)
         .to[Map[String, Seq[NetworkAwarenessAccessTableEntry]]]
       entries <- Future { entriesOrig.get("access_table").get }
     } yield entries
+  }
+
+  final def getPathInfo(src: Int, dst: Int)(implicit
+      ec: ExecutionContext,
+      actorSystem: ActorSystem
+  ): Future[NetworkAwarenessPathInfo] = {
+    for {
+      httpResponse <- httpGet(s"/awareness/path_info/$src/$dst")
+      info <- Unmarshal(httpResponse).to[NetworkAwarenessPathInfo]
+    } yield info
+  }
+
+  final def setAccessTableEntryPinning(
+      pinnings: Seq[NetworkAwarenessAccessTableEntryPinning],
+      flush: Boolean = false
+  )(implicit
+      ec: ExecutionContext,
+      actorSystem: ActorSystem
+  ): Future[Boolean] = {
+    for {
+      httpRequestEntity <-
+        Marshal(Map("pinnings" -> pinnings)).to[RequestEntity]
+      httpResponse <- {
+        val httpRequest = if (flush) httpPost _ else httpPatch _
+        httpRequest("/awareness/access_table_entry_pinnings", httpRequestEntity)
+      }
+      success <- NetworkAwarenessClientUtils.isSuccessful(httpResponse)
+    } yield success
   }
 }

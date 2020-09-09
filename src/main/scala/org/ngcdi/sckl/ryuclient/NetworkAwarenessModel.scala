@@ -36,9 +36,31 @@ final case class NetworkAwarenessLink (
     dst_port: Int
 ) extends Model
 
+final case class NetworkAwarenessCrossDomainLink (
+  src_dpid: Int,
+  src_port: Int,
+  src_controllerId: Int,
+  dst_dpid: Int,
+  dst_port: Int,
+  dst_controllerId: Int
+) extends Model
+
 final case class NetworkAwarenessAccessTableEntry (
   host_ip: String,
   host_mac: String,
+  dpid: Int,
+  port: Int
+) extends Model
+
+final case class NetworkAwarenessPathInfo (
+  src: Int,
+  dst: Int,
+  metrics: Map[String, Double],
+  switch_weights: Map[Int, Double]
+) extends Model
+
+final case class NetworkAwarenessAccessTableEntryPinning (
+  ip: String,
   dpid: Int,
   port: Int
 ) extends Model

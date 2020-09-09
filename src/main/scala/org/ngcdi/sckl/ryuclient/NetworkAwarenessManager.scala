@@ -11,6 +11,7 @@ import akka.actor.ActorRef
 import org.ngcdi.sckl.behaviour.neighbouring.NameResolutionUtils
 import akka.actor.ActorContext
 import akka.util.Timeout
+import org.ngcdi.sckl.Constants
 
 case class ControllerNotFoundException(id: Int)
     extends Exception(s"Could not find controller $id", None.orNull)
@@ -40,6 +41,10 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
 
   var initialized = false
 
+  var topology: NetworkAwarenessTopology = null
+
+  val edgeLinks = Constants.awarenessEdgeLinks
+
   @transient lazy val switchActorRefCache =
     mutable.Map.empty[NetworkAwarenessSwitch, Future[ActorRef]]
 
@@ -47,43 +52,61 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
       ec: ExecutionContext,
       actorSystem: ActorSystem
   ): Future[Unit] = {
-    Future.sequence(baseUrls.zipWithIndex.map { 
-      case (baseUrl, controllerId) => 
-        val client = new NetworkAwarenessClient(baseUrl)
-        
-        for {
-          links <- client.getLinks
-          accessTableRaw <- client.getAccessTable
-          ret <- Future {
-            val topology = NetworkAwarenessTopology.fromLinks(links, controllerId)
-            val accessTable = NetworkAwarenessAccessTable(accessTableRaw, topology)
-            NetworkAwarenessController(controllerId, client, topology, accessTable)
-          }
-        } yield ret
-    }).map { x => 
-      controllers = x
-      initialized = true
-      Unit
-    }
+    Future
+      .sequence(baseUrls.zipWithIndex.map {
+        case (baseUrl, controllerId) =>
+          val client = new NetworkAwarenessClient(baseUrl)
+
+          for {
+            links <- client.getLinks
+            accessTable <- client.getAccessTable
+            ret <- Future {
+              val topology = NetworkAwarenessTopology(links, accessTable, controllerId)
+              // val accessTable = NetworkAwarenessAccessTable(
+              //   controllerId,
+              //   accessTableRaw,
+              //   topology
+              // )
+              NetworkAwarenessController(
+                controllerId,
+                client,
+                topology
+              )
+            }
+          } yield ret
+      })
+      .map { x =>
+        topology = NetworkAwarenessTopology.join(
+          controllers.map(_.topology).toSeq,
+          edgeLinks
+        )
+        controllers = x
+        initialized = true
+        Unit
+      }
   }
 
-  def resolveControllerOfSwitch(
+  def getControllerOfSwitch(
       switch: NetworkAwarenessSwitch
   ): Option[NetworkAwarenessController] = {
     controllers.lift(switch.controllerId)
+  }
+
+  def getClientOfSwitch(
+    switch: NetworkAwarenessSwitch
+  ): Option[NetworkAwarenessClient] = {
+    getControllerOfSwitch(switch).map(_.client)
   }
 
   def setSwitchWeight(switch: NetworkAwarenessSwitch, weight: Double)(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
   ): Future[Boolean] = {
-    resolveControllerOfSwitch(switch)
+    getControllerOfSwitch(switch)
       .map(_.client.setSwitchWeights(Map(switch.dpid -> weight)))
       .getOrElse(
         Future.failed(
-          new Exception(
-            "Could not resolve the controller of the specified switch."
-          )
+          new ControllerNotFoundException(switch.controllerId)
         )
       )
   }
@@ -92,9 +115,10 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
       dpid: Int,
       controllerId: Int = 0
   ): Option[NetworkAwarenessSwitch] = {
-    controllers.lift(controllerId).flatMap { controller =>
-      controller.topology.switches.get(dpid)
-    }
+    topology.getSwitchById(dpid, controllerId)
+    // controllers.lift(controllerId).flatMap { controller =>
+    //   controller.topology.getSwitchById(dpid, controllerId)
+    // }
   }
 
   def getStats(
@@ -178,5 +202,21 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
         )
       }
     )
+  }
+
+  def getPathInfo(
+      src: NetworkAwarenessSwitch,
+      dst: NetworkAwarenessSwitch
+  )(implicit
+      ec: ExecutionContext,
+      actorSystem: ActorSystem
+  ): Future[NetworkAwarenessPathInfo] = {
+    assert(src.controllerId == dst.controllerId)
+    controllers
+      .lift(src.controllerId)
+      .map(_.client.getPathInfo(src.dpid, dst.dpid))
+      .getOrElse(
+        Future.failed(new ControllerNotFoundException(src.controllerId))
+      )
   }
 }

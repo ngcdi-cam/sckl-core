@@ -17,7 +17,7 @@ trait AwarenessNeighbouringBehaviour
   override def neighbouringBehaviourPrestart(): Unit = {
     awarenessSwitch.onComplete { 
       case Success(switch) => 
-        val nodeNames = switch.getPeers.map { switch => NameResolutionUtils.dpidToNodeHostName(switch.dpid) }.toSeq
+        val nodeNames = switch.getPeerSwitches.map { switch => NameResolutionUtils.dpidToNodeHostName(switch.dpid) }.toSeq
         log.info("Target paths: " + nodeNames)
         resolveNodeNamesWithRetry(nodeNames).foreach { Unit =>
           self ! SenseFlow(Config.keyHosts)

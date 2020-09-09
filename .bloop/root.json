@@ -38,6 +38,7 @@
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/slack/api/slack-api-model/1.0.6/slack-api-model-1.0.6.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/slack/api/slack-api-client/1.0.6/slack-api-client-1.0.6.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/slack/api/slack-app-backend/1.0.6/slack-app-backend-1.0.6.jar",
+            "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/org/jgrapht/jgrapht-core/1.5.0/jgrapht-core-1.5.0.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/thesamet/scalapb/lenses_2.12/0.9.0-M6/lenses_2.12-0.9.0-M6.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fastparse_2.12/2.1.2/fastparse_2.12-2.1.2.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.10.0/protobuf-java-3.10.0.jar",
@@ -57,6 +58,7 @@
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/squareup/okhttp3/okhttp/4.4.1/okhttp-4.4.1.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/org/nanohttpd/nanohttpd/2.3.1/nanohttpd-2.3.1.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/code/gson/gson/2.8.6/gson-2.8.6.jar",
+            "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/org/jheaps/jheaps/0.13/jheaps-0.13.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_2.12/0.1.6/sourcecode_2.12-0.1.6.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/typesafe/akka/akka-parsing_2.12/10.1.11/akka-parsing_2.12-10.1.11.jar",
             "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/modules/scala-parser-combinators_2.12/1.1.2/scala-parser-combinators_2.12-1.1.2.jar",
@@ -569,6 +571,23 @@
                     ]
                 },
                 {
+                    "organization": "org.jgrapht",
+                    "name": "jgrapht-core",
+                    "version": "1.5.0",
+                    "configurations": "default",
+                    "artifacts": [
+                        {
+                            "name": "jgrapht-core",
+                            "path": "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/org/jgrapht/jgrapht-core/1.5.0/jgrapht-core-1.5.0.jar"
+                        },
+                        {
+                            "name": "jgrapht-core",
+                            "classifier": "sources",
+                            "path": "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/org/jgrapht/jgrapht-core/1.5.0/jgrapht-core-1.5.0-sources.jar"
+                        }
+                    ]
+                },
+                {
                     "organization": "com.thesamet.scalapb",
                     "name": "lenses_2.12",
                     "version": "0.9.0-M6",
@@ -888,6 +907,23 @@
                             "name": "gson",
                             "classifier": "sources",
                             "path": "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/code/gson/gson/2.8.6/gson-2.8.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.jheaps",
+                    "name": "jheaps",
+                    "version": "0.13",
+                    "configurations": "default",
+                    "artifacts": [
+                        {
+                            "name": "jheaps",
+                            "path": "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/org/jheaps/jheaps/0.13/jheaps-0.13.jar"
+                        },
+                        {
+                            "name": "jheaps",
+                            "classifier": "sources",
+                            "path": "/home/peter/.cache/coursier/v1/https/repo1.maven.org/maven2/org/jheaps/jheaps/0.13/jheaps-0.13-sources.jar"
                         }
                     ]
                 },

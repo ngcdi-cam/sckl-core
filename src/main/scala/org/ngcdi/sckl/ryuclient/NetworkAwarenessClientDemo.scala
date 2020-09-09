@@ -15,8 +15,8 @@ object NetworkAwarenessClientDemo {
 
         
         (for {
-            accessTableRaw <- client.getAccessTable
-            _ <- Future { log.info("Access table: " + accessTableRaw) }
+            accessTable <- client.getAccessTable
+            _ <- Future { log.info("Access table: " + accessTable) }
             switchFlows <- client.getSwitchFlows(3)
             _ <- Future { log.info("Flows: " + switchFlows) }
             stats <- client.getStats
@@ -38,15 +38,15 @@ object NetworkAwarenessClientDemo {
             success3 <- client.setServices(Constants.awarenessServices)
             servicesRaw <- client.getServices
             _ <- Future { log.info("Services: " + servicesRaw)}
-        } yield Tuple2(links, accessTableRaw)).onComplete { 
-          case Success(Tuple2(links, accessTableRaw)) => 
+        } yield Tuple2(links, accessTable)).onComplete { 
+          case Success(Tuple2(links, accessTable)) => 
   
             // val topo = NetworkAwarenessTopology.fromStats(stats, 0)
-            val topo = NetworkAwarenessTopology.fromLinks(links, 0)
-            val accessTable = NetworkAwarenessAccessTable(accessTableRaw, topo)
+            val topo = NetworkAwarenessTopology(links, accessTable,  0)
+            // val accessTable = NetworkAwarenessAccessTable(0, accessTableRaw, topo)
 
-            val switch1 = topo.switches.get(1).get
-            val switch2 = topo.switches.get(2).get
+            val switch1 = topo.switches(1)
+            val switch2 = topo.switches(2)
 
             log.info("Switch 1: " + switch1)
             log.info("Switch 1 Peers: " + switch1.getPeers)
