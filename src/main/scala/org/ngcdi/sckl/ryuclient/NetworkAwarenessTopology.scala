@@ -2,6 +2,7 @@ package org.ngcdi.sckl.ryuclient
 
 import scala.collection.mutable
 import org.ngcdi.sckl.Constants
+import akka.http.scaladsl.server.util.Tuple
 
 object NetworkAwarenessTopology {
   // def fromStats(
@@ -23,8 +24,8 @@ object NetworkAwarenessTopology {
   // }
 
   def apply(
-      links: Seq[NetworkAwarenessLink],
-      accessTables: Seq[NetworkAwarenessAccessTableEntry],
+      links: Seq[NetworkAwarenessRawLink],
+      accessTables: Seq[NetworkAwarenessRawAccessTableEntry],
       controllerId: Int
   ): NetworkAwarenessTopology = {
     val topoRaw = mutable.Map.empty[Int, mutable.Map[Int, Int]]
@@ -46,7 +47,7 @@ object NetworkAwarenessTopology {
     var hosts = Seq.empty[NetworkAwarenessHost]
 
     accessTables.foreach {
-      case NetworkAwarenessAccessTableEntry(host_ip, host_mac, dpid, port) =>
+      case NetworkAwarenessRawAccessTableEntry(host_ip, host_mac, dpid, port) =>
         val switch = switches.get(dpid).get
         val host = NetworkAwarenessHost(host_ip, host_mac, switch)
         switch.ports.update(port, host)
@@ -71,12 +72,12 @@ object NetworkAwarenessTopology {
   // join topologies of different domains as a grand topology
   def join(
       topologies: Seq[NetworkAwarenessTopology],
-      edgeLinks: Seq[NetworkAwarenessCrossDomainLink]
+      edgeLinks: Seq[NetworkAwarenessRawCrossDomainLink]
   ): NetworkAwarenessTopology = {
     val allSwitches =
       mutable.Map.empty ++= topologies.flatMap(_.idToSwitchMap).toMap
     edgeLinks.foreach {
-      case NetworkAwarenessCrossDomainLink(
+      case NetworkAwarenessRawCrossDomainLink(
             srcDpid,
             srcPort,
             srcCtrlId,
@@ -111,6 +112,8 @@ class NetworkAwarenessTopology(
   }.toMap
   // (dpid, controllerId) -> switch
 
+  @transient private lazy val ipToHostMap = hosts.groupBy(_.ip)
+
   @transient private lazy val edgeLinks = switches
     .flatMap { x =>
       x.getPeers
@@ -122,6 +125,33 @@ class NetworkAwarenessTopology(
         .map(Tuple2(x, _))
     }
 
+  //Map[Tuple2[Int, Int], Seq[
+  //   NetworkAwarenessSwitchLink
+  // ]]]
+
+  @transient private lazy val domainConnectivityGraph
+      : Map[Tuple2[Int, Int], Seq[NetworkAwarenessSwitchLink]] = switches
+    .flatMap { srcSwitch =>
+      srcSwitch.ports
+        .collect {
+          case (port, switch: NetworkAwarenessSwitch)
+              if switch.controllerId > srcSwitch.controllerId =>
+            Tuple2(port, switch)
+        }
+        .map { dst =>
+          val srcPort = dst._1
+          val dstPort = dst._2.ports.find(_._2 == srcSwitch).get._1
+          val dstSwitch = dst._2
+          NetworkAwarenessSwitchLink(srcSwitch, dstSwitch, srcPort, dstPort)
+        }
+    }
+    .groupBy { link =>
+      Tuple2(link.src.controllerId, link.dst.controllerId)
+    }
+
+  @transient private lazy val domainConnectivityGraphSimple =
+    domainConnectivityGraph.map(_._1).toMap
+
   def getSwitchById(
       dpid: Int,
       controllerId: Int
@@ -129,9 +159,40 @@ class NetworkAwarenessTopology(
     idToSwitchMap.get(Tuple2(dpid, controllerId))
   }
 
-  
+  def getHostByIp(
+      ip: String
+  ): Option[NetworkAwarenessHost] = {
+    getHostsByIp(ip).lift(0)
+  }
+
+  def getHostsByIp(
+      ip: String
+  ): Seq[NetworkAwarenessHost] = {
+    ipToHostMap.getOrElse(ip, Seq.empty)
+  }
+
   def getEdgeLinks
       : Seq[Tuple2[NetworkAwarenessSwitch, NetworkAwarenessSwitch]] = edgeLinks
+
+  def getPortFromLink(
+      src: NetworkAwarenessSwitch,
+      dst: NetworkAwarenessSwitch
+  ): Tuple2[Int, Int] = {
+    Tuple2(
+      src.ports.collect {
+        case Tuple2(portId, switch: NetworkAwarenessSwitch) if switch == dst =>
+          portId
+      }.head,
+      dst.ports.collect {
+        case Tuple2(portId, switch: NetworkAwarenessSwitch) if switch == src =>
+          portId
+      }.head
+    )
+  }
+
+  def getDomainConnectivityGraph() = domainConnectivityGraph
+  def getDomainConnectivityGraphSimple(): Map[Int, Int] =
+    domainConnectivityGraphSimple
 }
 
 // case class NetworkAwarenessTopology(switches: Map[Int, NetworkAwarenessSwitch])

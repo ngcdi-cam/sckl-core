@@ -8,12 +8,12 @@ import scala.util.Success
 import scala.util.Failure
 import org.ngcdi.sckl.behaviour.neighbouring.NameResolutionUtils
 import scala.concurrent.Future
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessFlowEntry
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessRawFlowEntry
 import org.ngcdi.sckl.behaviour.awareness.NetworkAwarenessSwitchProvider
 
 case class FlowCongestionDetected(
     src_ip_dpid: Int,
-    flows: Seq[NetworkAwarenessFlowEntry]
+    flows: Seq[NetworkAwarenessRawFlowEntry]
 )
 
 trait FlowCongestionAnomalyActuatorBehaviour

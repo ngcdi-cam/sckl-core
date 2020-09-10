@@ -14,25 +14,34 @@ import akka.http.scaladsl.server.util.Tuple
 
 trait NetworkAwarenessJsonSupport {
   @transient lazy implicit val statEntryFormat = jsonFormat5(
-    NetworkAwarenessStatEntry
+    NetworkAwarenessRawStatEntry
   );
   @transient lazy implicit val flowEntryFormat = jsonFormat9(
-    NetworkAwarenessFlowEntry
+    NetworkAwarenessRawFlowEntry
   );
   @transient lazy implicit val serviceFormat = jsonFormat4(
     NetworkAwarenessService
   )
   @transient lazy implicit val accessTableEntryFormat = jsonFormat4(
-    NetworkAwarenessAccessTableEntry
+    NetworkAwarenessRawAccessTableEntry
   )
   @transient lazy implicit val linkFormat = jsonFormat4(
-    NetworkAwarenessLink
+    NetworkAwarenessRawLink
   )
-  @transient lazy implicit val pathInfoFormat = jsonFormat4(
-    NetworkAwarenessPathInfo
+  @transient lazy implicit val pathInfoPairFormat = jsonFormat3(
+    NetworkAwarenessRawPathPairInfo
   )
-  @transient lazy implicit val accessTableEntryPinning = jsonFormat3(
-    NetworkAwarenessAccessTableEntryPinning
+  @transient lazy implicit val pathInfoFormat = jsonFormat2(
+    NetworkAwarenessRawPathInfo
+  )
+  @transient lazy implicit val accessTableEntryPinningFormat = jsonFormat3(
+    NetworkAwarenessRawAccessTableEntryPinning
+  )
+  @transient lazy implicit val pathInfoPairRequestFormat = jsonFormat4(
+    NetworkAwarenessRawPathInfoPairRequest
+  )
+  @transient lazy implicit val pathInfoRequestFormat = jsonFormat2(
+    NetworkAwarenessRawPathInfoRequest
   )
 }
 
@@ -46,11 +55,11 @@ class NetworkAwarenessClient(baseUrl: String)
   final def getStats(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessStatEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawStatEntry]] = {
     for {
       httpResponse <- httpGet("/awareness/stats")
-      statsOrig <-
-        Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessStatEntry]]]
+      statsOrig <- Unmarshal(httpResponse)
+        .to[Map[String, Seq[NetworkAwarenessRawStatEntry]]]
       stats <- Future { statsOrig.get("graph").get.toSeq }
     } yield stats
   }
@@ -58,13 +67,13 @@ class NetworkAwarenessClient(baseUrl: String)
   final def getSwitchStats(dpid: Int, filter: Boolean = false)(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessStatEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawStatEntry]] = {
     for {
       httpResponse <- httpGet(
         s"/awareness/stats/$dpid" + (if (filter) "?filter" else "")
       )
-      statsOrig <-
-        Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessStatEntry]]]
+      statsOrig <- Unmarshal(httpResponse)
+        .to[Map[String, Seq[NetworkAwarenessRawStatEntry]]]
       stats <- Future { statsOrig.get("graph").get.toSeq }
     } yield stats
   }
@@ -72,13 +81,13 @@ class NetworkAwarenessClient(baseUrl: String)
   final def getSwitchFlows(dpid: Int, filter: Boolean = false)(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessFlowEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawFlowEntry]] = {
     for {
       httpResponse <- httpGet(
         s"/awareness/flows/$dpid" + (if (filter) "?filter" else "")
       )
-      statsOrig <-
-        Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessFlowEntry]]]
+      statsOrig <- Unmarshal(httpResponse)
+        .to[Map[String, Seq[NetworkAwarenessRawFlowEntry]]]
       stats <- Future { statsOrig.get("flows").get.toSeq }
     } yield stats
   }
@@ -179,11 +188,11 @@ class NetworkAwarenessClient(baseUrl: String)
   final def getLinks(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessLink]] = {
+  ): Future[Seq[NetworkAwarenessRawLink]] = {
     for {
       httpResponse <- httpGet("/awareness/links")
       linksOrig <-
-        Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessLink]]]
+        Unmarshal(httpResponse).to[Map[String, Seq[NetworkAwarenessRawLink]]]
       links <- Future { linksOrig.get("links").get }
     } yield links
   }
@@ -191,27 +200,30 @@ class NetworkAwarenessClient(baseUrl: String)
   final def getAccessTable(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessAccessTableEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawAccessTableEntry]] = {
     for {
       httpResponse <- httpGet("/awareness/access_table")
       entriesOrig <- Unmarshal(httpResponse)
-        .to[Map[String, Seq[NetworkAwarenessAccessTableEntry]]]
+        .to[Map[String, Seq[NetworkAwarenessRawAccessTableEntry]]]
       entries <- Future { entriesOrig.get("access_table").get }
     } yield entries
   }
 
-  final def getPathInfo(src: Int, dst: Int)(implicit
+  final def getPathInfo(
+      r: NetworkAwarenessRawPathInfoRequest
+  )(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[NetworkAwarenessPathInfo] = {
+  ): Future[NetworkAwarenessRawPathInfo] = {
     for {
-      httpResponse <- httpGet(s"/awareness/path_info/$src/$dst")
-      info <- Unmarshal(httpResponse).to[NetworkAwarenessPathInfo]
+      httpRequestEntity <- Marshal(r).to[RequestEntity]
+      httpResponse <- httpPost(s"/awareness/path_info", httpRequestEntity)
+      info <- Unmarshal(httpResponse).to[NetworkAwarenessRawPathInfo]
     } yield info
   }
 
   final def setAccessTableEntryPinning(
-      pinnings: Seq[NetworkAwarenessAccessTableEntryPinning],
+      pinnings: Seq[NetworkAwarenessRawAccessTableEntryPinning],
       flush: Boolean = false
   )(implicit
       ec: ExecutionContext,

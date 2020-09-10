@@ -1,9 +1,9 @@
 package org.ngcdi.sckl.ryuclient
 
 object NetworkAwarenessUtils {
-  def lookUpServiceByIp(services: Seq[NetworkAwarenessService], ip: String) = {
+  def lookUpServiceByIp(services: Seq[NetworkAwarenessService], ip: String, srcOnly: Boolean = false) = {
     services.filter { p => 
-      p.src == ip || p.dst == ip
+      p.src == ip || (!srcOnly && p.dst == ip)
     }
   }
 

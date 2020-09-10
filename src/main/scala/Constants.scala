@@ -1,7 +1,7 @@
 package org.ngcdi.sckl
 import scala.concurrent.duration._
 import org.ngcdi.sckl.ryuclient.NetworkAwarenessService
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessCrossDomainLink
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessRawCrossDomainLink
 //import ClusteringConfig._
 
 object Constants {
@@ -187,8 +187,12 @@ object Constants {
     ))
   )
 
+  // ========================================
+  // Network Awareness Cross Domain Optimizer
+  // ========================================
+
   // Network Awareness Default Metric Weights
-  val awarenessDefaultWeights = Map(
+  val awarenessDefaultMetricWeights = Map(
     awarenessFreeBandwidth -> 1.0,
     awarenessLatency -> 0.0,
     awarenessHop -> 0.0
@@ -200,13 +204,20 @@ object Constants {
     awarenessLatency,
     awarenessHop
   )
-  
-  // ============================
-  // Network Awareness Edge Links
-  // ============================
 
-  val awarenessEdgeLinks = Seq(
-    NetworkAwarenessCrossDomainLink(0, 0, 0, 1, 1, 1)
+  val awarenessOptimalKPaths = 1
+  val awarenessOptimalK2Paths = 5
+  
+  // ====================================
+  // Network Awareness Cross Domain Links
+  // ====================================
+
+  val awarenessCrossDomainLinks = Seq(
+    // srcDpid, srcPort, srcControllerId, dstDpid, dstPort, dstControllerId
+    NetworkAwarenessRawCrossDomainLink(1, 1, 0, 2, 1, 1),
+    NetworkAwarenessRawCrossDomainLink(5, 3, 0, 2, 3, 1),
+    NetworkAwarenessRawCrossDomainLink(5, 4, 0, 6, 3, 1),
+    NetworkAwarenessRawCrossDomainLink(8, 2, 0, 9, 2, 1)
   )
 
   // ================

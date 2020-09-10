@@ -43,7 +43,7 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
 
   var topology: NetworkAwarenessTopology = null
 
-  val edgeLinks = Constants.awarenessEdgeLinks
+  val edgeLinks = Constants.awarenessCrossDomainLinks
 
   @transient lazy val switchActorRefCache =
     mutable.Map.empty[NetworkAwarenessSwitch, Future[ActorRef]]
@@ -61,7 +61,8 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
             links <- client.getLinks
             accessTable <- client.getAccessTable
             ret <- Future {
-              val topology = NetworkAwarenessTopology(links, accessTable, controllerId)
+              val topology =
+                NetworkAwarenessTopology(links, accessTable, controllerId)
               // val accessTable = NetworkAwarenessAccessTable(
               //   controllerId,
               //   accessTableRaw,
@@ -77,7 +78,7 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
       })
       .map { x =>
         topology = NetworkAwarenessTopology.join(
-          controllers.map(_.topology).toSeq,
+          x.map(_.topology).toSeq,
           edgeLinks
         )
         controllers = x
@@ -93,7 +94,7 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
   }
 
   def getClientOfSwitch(
-    switch: NetworkAwarenessSwitch
+      switch: NetworkAwarenessSwitch
   ): Option[NetworkAwarenessClient] = {
     getControllerOfSwitch(switch).map(_.client)
   }
@@ -126,7 +127,7 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
   )(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessStatEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawStatEntry]] = {
     controllers
       .lift(controllerId)
       .map(_.client.getStats)
@@ -140,7 +141,7 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
   )(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessStatEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawStatEntry]] = {
     controllers
       .lift(controllerId)
       .map(_.client.getSwitchStats(dpid, filter))
@@ -154,7 +155,7 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
   )(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessFlowEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawFlowEntry]] = {
     controllers
       .lift(controllerId)
       .map { x => x.client.getSwitchFlows(dpid, filter) }
@@ -166,7 +167,7 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
   )(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessStatEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawStatEntry]] = {
     getSwitchStats(switch.dpid, switch.controllerId, true)
   }
 
@@ -175,7 +176,7 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
   )(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessFlowEntry]] = {
+  ): Future[Seq[NetworkAwarenessRawFlowEntry]] = {
     getSwitchFlows(switch.dpid, switch.controllerId, true)
   }
 
@@ -205,18 +206,31 @@ class NetworkAwarenessManager(baseUrls: Seq[String]) extends Serializable {
   }
 
   def getPathInfo(
-      src: NetworkAwarenessSwitch,
-      dst: NetworkAwarenessSwitch
+      srcDstPairs: Seq[Tuple2[NetworkAwarenessSwitch, NetworkAwarenessSwitch]],
+      weights: Map[String, Double],
+      srcIp: String,
+      dstIp: String
   )(implicit
       ec: ExecutionContext,
       actorSystem: ActorSystem
-  ): Future[NetworkAwarenessPathInfo] = {
-    assert(src.controllerId == dst.controllerId)
+  ): Future[NetworkAwarenessRawPathInfo] = {
+    val controllerId = srcDstPairs(0)._1.controllerId
+    assert(srcDstPairs.filterNot { x =>
+      x._1.controllerId == controllerId && x._2.controllerId == controllerId
+    }.size == 0)
+
+    val pairsReq = srcDstPairs.map { x =>
+      NetworkAwarenessRawPathInfoPairRequest(x._1.dpid, x._2.dpid, srcIp, dstIp)
+    }
+
     controllers
-      .lift(src.controllerId)
-      .map(_.client.getPathInfo(src.dpid, dst.dpid))
+      .lift(controllerId)
+      .map(
+        _.client
+          .getPathInfo(NetworkAwarenessRawPathInfoRequest(pairsReq, weights))
+      )
       .getOrElse(
-        Future.failed(new ControllerNotFoundException(src.controllerId))
+        Future.failed(new ControllerNotFoundException(controllerId))
       )
   }
 }

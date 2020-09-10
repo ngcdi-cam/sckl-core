@@ -42,11 +42,18 @@ class NetworkAwarenessSwitch(
   }
 
   override def toString(): String =
-    s"Switch($controllerId, $dpid, ports = ${ports.keySet})"
+    s"NetworkAwarenessSwitch($controllerId,$dpid)"
 }
 
 case class NetworkAwarenessHost(
     ip: String,
     mac: String,
-    link: NetworkAwarenessNode
+    switch: NetworkAwarenessSwitch
 ) extends NetworkAwarenessNode
+
+case class NetworkAwarenessSwitchLink(
+  src: NetworkAwarenessSwitch,
+  dst: NetworkAwarenessSwitch,
+  srcPort: Int,
+  dstPort: Int
+)

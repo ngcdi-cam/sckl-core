@@ -7,11 +7,11 @@ import org.ngcdi.sckl.model._
 
 import org.ngcdi.sckl.sdn._
 import org.ngcdi.sckl.NetworkUtils._
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessStatEntry
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessRawStatEntry
 import org.ngcdi.sckl.behaviour.NetworkAwarenessStatsSensorBehaviour
 import org.ngcdi.sckl.behaviour.NetworkAwarenessSwitchStatsSensorBehaviour
 import org.ngcdi.sckl.behaviour.NetworkAwarenessSwitchFlowsSensorBehaviour
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessFlowEntry
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessRawFlowEntry
 
 //final case class ProcessResponse(entityStr:String,entity:ResponseEntity)
 //final case class ProcessResponse(entity:String)
@@ -67,13 +67,13 @@ trait CombinedController
                   log.info("No Throughput Calculated")
               }
             }
-        case nf: NetworkAwarenessStatEntry =>
+        case nf: NetworkAwarenessRawStatEntry =>
           val flow = nf.src + ":" + nf.dst // TODO: DO NOT use the string representation of the flow
           nf.metrics.foreach {
             case (metric, value) =>
               sendToLocalView(nodeName, flow, value, now, metric)
           }
-        case nf: NetworkAwarenessFlowEntry =>
+        case nf: NetworkAwarenessRawFlowEntry =>
           val flow = s"${nf.src}:${nf.dst}:${nf.src_ip}:${nf.dst_ip}:${nf.src_ip_dpid}:${nf.dst_ip_dpid}"
           sendToLocalView(nodeName, flow, nf.throughput, now, awarenessFlowThroughput)
         case _ =>

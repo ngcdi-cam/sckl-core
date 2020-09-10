@@ -6,11 +6,14 @@ import scala.concurrent.Future
 import org.ngcdi.sckl.Constants
 import org.ngcdi.sckl.ryuclient.NetworkAwarenessUtils
 import org.ngcdi.sckl.behaviour.FlowCongestionDetected
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessCrossDomainOptimizer
 
 trait AwarenessServiceManagerBehaviour
     extends NetworkAwarenessSwitchProvider
     with NetworkAwarenessManagerReceiverBehaviour
-    with AwarenessManagedServicesProvider {
+    with AwarenessManagedServicesProvider
+    with AwarenessManagedGlobalServicesProvider
+    with AwarenessCrossDomainOptimizerProvider {
 
   this: ScklActor =>
 
@@ -19,11 +22,18 @@ trait AwarenessServiceManagerBehaviour
       manager <- awarenessManager
       switch <- awarenessSwitch
       _ <- Future {
+        val optimizer = new NetworkAwarenessCrossDomainOptimizer(
+          Constants.awarenessOptimalKPaths,
+          Constants.awarenessOptimalK2Paths,
+          Constants.awarenessEnabledMetrics,
+          Constants.awarenessDefaultMetricWeights
+        )(manager, executionContext)
+        setAwarenessCrossDomainOptimizer(optimizer)
+
         val controllerId = switch.controllerId
         val hosts = manager.controllers(controllerId).topology.hosts
-        // val accessTable = manager.controllers(controllerId).accessTable
         log.info("Hosts are " + hosts)
-        val hostIps = hosts.filter(_.link == switch).map(_.ip).toSeq
+        val hostIps = hosts.filter(_.switch == switch).map(_.ip).toSeq
         val managedServices = hostIps.flatMap(
           NetworkAwarenessUtils.lookUpServiceByIp(
             Constants.awarenessServices,
@@ -32,12 +42,31 @@ trait AwarenessServiceManagerBehaviour
         )
         setAwarenessManagedServices(managedServices)
 
-        if (hostIps.size > 0) {
+        val globalHosts = manager.topology.hosts
+        log.info("Global hosts are " + globalHosts)
+        val globalHostIps = globalHosts.filter(_.switch == switch).map(_.ip).toSeq
+        val managedGlobalServices = globalHostIps.flatMap(
+          NetworkAwarenessUtils.lookUpServiceByIp(
+            Constants.awarenessServices,
+            _,
+            true // only the head of the path takes the role of optimizing the cross domain paths
+          )
+        )
+
+        if (managedServices.size > 0) {
           log.info(
-            s"I'm an awareness service manager, host ips: $hostIps, managed services: $managedServices"
+            s"I'm an awareness service manager, host IPs: $hostIps, managed services: $managedServices"
           )
         } else {
           log.info("I'm not an awareness service manager")
+        }
+
+        if (managedGlobalServices.size > 0) {
+          log.info(
+            s"i'm an awareness global service manager, host IPs: $globalHostIps, managed services: $managedGlobalServices"
+          )
+        } else {
+          log.info("i'm not an awareness global service manager")
         }
       }
     } yield Unit
@@ -55,6 +84,8 @@ trait AwarenessServiceManagerBehaviour
           manager <- awarenessManager
           switch <- awarenessSwitch
           services <- awarenessManagedServices
+          globalServices <- awarenessManagedGlobalServices
+          optimizer <- awarenessCrossDomainOptimizer
           _ <- Future {
             val controllerId = switch.controllerId
             flows.foreach { flow =>
@@ -64,6 +95,7 @@ trait AwarenessServiceManagerBehaviour
               manager.installServices(targetServices, controllerId)
             }
           }
+          _ <- Future.sequence(globalServices.map(optimizer.optimize(_)))
         } yield Unit
       }
   }

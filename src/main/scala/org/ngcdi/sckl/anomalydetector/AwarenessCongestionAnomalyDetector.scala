@@ -2,13 +2,13 @@ package org.ngcdi.sckl.anomalydetector
 
 import org.ngcdi.sckl.msgs.Measurement
 import org.ngcdi.sckl.Constants._
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessFlowEntry
+import org.ngcdi.sckl.ryuclient.NetworkAwarenessRawFlowEntry
 
 case class AwarenessLinkCongestion(
   throughput: Double,
   bandwidth: Double,
   usage: Double,
-  flows: Seq[NetworkAwarenessFlowEntry]
+  flows: Seq[NetworkAwarenessRawFlowEntry]
 )
 
 case class AwarenessCongestionAnomalyDetectionResult(
@@ -89,7 +89,7 @@ class AwarenessCongestionAnomalyDetector(
         val usage = info._3
         val flowsOfLink = flows.filter(_._1 == link).map {
           case ((src, dst), (flowThroughput, srcIp, dstIp, srcIpDpid, dstIpDpid)) =>
-            NetworkAwarenessFlowEntry(src, dst, -1, -1, srcIp, dstIp, srcIpDpid, dstIpDpid, flowThroughput)
+            NetworkAwarenessRawFlowEntry(src, dst, -1, -1, srcIp, dstIp, srcIpDpid, dstIpDpid, flowThroughput)
         }
         Tuple2(link, AwarenessLinkCongestion(throughput, bandwidth, usage, flowsOfLink))
         // val bandwidth = 
