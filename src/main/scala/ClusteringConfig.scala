@@ -10,6 +10,7 @@ object ClusteringConfig {
   val nodeName = config.getString("clustering.dev-id")
   val nodePort = config.getString("clustering.port")
   val launcher = config.getString("clustering.launcher")
+  val digiAssetLauncher = config.getString("clustering.da-launcher")
   val nnodes = config.getString("clustering.nodes")
   val monitorFrom:Int = config.getString("clustering.monitor-from").toInt
 }

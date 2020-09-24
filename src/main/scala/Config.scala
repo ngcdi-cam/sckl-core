@@ -3,7 +3,6 @@ package org.ngcdi.sckl
 import com.typesafe.config.ConfigFactory
 import scala.collection.JavaConverters._
 
-
 object Config {
   private val config = ConfigFactory.load()
   val datadir = config.getString("sckl.datasource.datadir")
@@ -11,12 +10,14 @@ object Config {
   val restMonitoringUrlNodeName = restMonitoringUrl + ClusteringConfig.nodeName
   val sdncServer = config.getString("sckl.rest.sdn.server")
   val netwServer = config.getString("sckl.rest.netw.server")
-  val sdncPort = Integer.parseInt(config.getString("sckl.rest.sdn.port")).intValue()
-  val netwPort = Integer.parseInt(config.getString("sckl.rest.netw.port")).intValue()
+  val sdncPort =
+    Integer.parseInt(config.getString("sckl.rest.sdn.port")).intValue()
+  val netwPort =
+    Integer.parseInt(config.getString("sckl.rest.netw.port")).intValue()
   val netwApiKey = config.getString("sckl.rest.netw.api_key")
   val netwUrlsStr = config.getStringList("sckl.rest.netw.urls").get(0)
   //val netwUrlsStr:String = config.getList(x$1: String).getStringList("sckl.rest.netw.urls").get(0).substring(1,config.getStringList("sckl.rest.netw.urls").get(0).length -1).toString
-  val netwUrls = netwUrlsStr.substring(1,netwUrlsStr.length()-1).split(",")
+  val netwUrls = netwUrlsStr.substring(1, netwUrlsStr.length() - 1).split(",")
 
   val slkChannelURL = config.getString("sckl.rest.ui.url") // slack webhook
   val uiServer = config.getString("sckl.rest.ui.server")
@@ -28,5 +29,24 @@ object Config {
   val keyServices = config.getString("sckl.services").split(",").toSeq
   val ngbNames = config.getString("sckl.neighbours").split(",").toSeq
 
-  val awarenessServerUrl = config.getString("sckl.rest.awareness.url").split(",").toSeq
+  val awarenessServerUrl =
+    config.getString("sckl.awareness.url").split(",").toSeq
+
+  val crossDomainLinks = config
+    .getString("sckl.awareness.crossdomainlinks")
+    .split("\\|")
+    .filterNot(_.isEmpty())
+    .map(_.split(",").map(_.toInt).toSeq)
+    .toSeq
+  val transportTopology = config
+    .getString("sckl.transport.topology")
+    .split("\\|")
+    .filterNot(_.isEmpty())
+    .map({ x =>
+      val t = x.split(":", 2)
+      val src = t(0)
+      val dst = t(1).split(",").toSeq
+      Tuple2(src, dst)
+    })
+    .toMap
 }

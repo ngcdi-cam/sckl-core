@@ -3,7 +3,7 @@ package org.ngcdi.sckl
 import kamon.prometheus._
 import kamon._
 //import kamon.system.SystemMetrics
-
+import akka.actor.ActorSystem
 import kamon.Kamon
 //import kamon
 import org.ngcdi._
@@ -27,8 +27,12 @@ object DemoApp {
         DigiAssetLauncher.main(Array("intent+file"))
       case "digiAssetStandalone" =>
         DigiAssetLauncher.main(Array("standalone"))
+      case "digiAssetCustomArg" =>
+        DigiAssetLauncher.main(Array(ClusteringConfig.digiAssetLauncher))
       case "functionProvisioner" =>
         FunctionProvisionerLauncher.main(Array.empty)
+      case _ =>
+        println(s"Invalid launcher specified: ${launcher}")
     }
   }
 

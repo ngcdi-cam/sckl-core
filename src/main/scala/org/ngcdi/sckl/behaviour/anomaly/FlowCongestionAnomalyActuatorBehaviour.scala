@@ -1,25 +1,21 @@
-package org.ngcdi.sckl.behaviour
+package org.ngcdi.sckl.behaviour.anomaly
 
-import org.ngcdi.sckl.actuator.CongestionActuator
-import org.ngcdi.sckl.Constants
 import org.ngcdi.sckl.AnomalyMessages._
 import org.ngcdi.sckl.anomalydetector.AwarenessCongestionAnomalyDetectionResult
-import scala.util.Success
-import scala.util.Failure
-import org.ngcdi.sckl.behaviour.neighbouring.NameResolutionUtils
 import scala.concurrent.Future
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessRawFlowEntry
-import org.ngcdi.sckl.behaviour.awareness.NetworkAwarenessSwitchProvider
+import org.ngcdi.sckl.awareness.AwarenessRawFlowEntry
+import org.ngcdi.sckl.behaviour.awareness.AwarenessSwitchProvider
+import org.ngcdi.sckl.behaviour.awareness.AwarenessManagerReceiverBehaviour
 
 case class FlowCongestionDetected(
     src_ip_dpid: Int,
-    flows: Seq[NetworkAwarenessRawFlowEntry]
+    flows: Seq[AwarenessRawFlowEntry]
 )
 
 trait FlowCongestionAnomalyActuatorBehaviour
     extends AnomalyActuatorBehaviour
-    with NetworkAwarenessManagerReceiverBehaviour
-    with NetworkAwarenessSwitchProvider {
+    with AwarenessManagerReceiverBehaviour
+    with AwarenessSwitchProvider {
 
   override def anomalyActuatorBehaviour: Receive = {
     case AnomalyDetected(anomaly: AwarenessCongestionAnomalyDetectionResult) =>
@@ -37,12 +33,29 @@ trait FlowCongestionAnomalyActuatorBehaviour
           val targetActor = manager.getActorOfSwitch(
             manager.getSwitchById(flow._1, controllerId).get
           )
-          targetActor.map { actor =>
+          targetActor.flatMap { actor =>
             log.info(
               s"Sending FlowCongestionDetected to ${actor.path}, src_ip_dpid is ${flow._1}"
             )
             actor ! FlowCongestionDetected(flow._1, flow._2.toSeq)
-            Unit
+
+            val globalEndpointSwitch = manager.topology.hosts
+              .find { host =>
+                flow._2.map(_.src_ip).toSeq.distinct.contains(host.ip)
+              }
+              .get
+              .switch
+
+            val globalServiceManagerActor =
+              manager.getActorOfSwitch(globalEndpointSwitch)
+
+            globalServiceManagerActor.map { actor =>
+              log.info(
+                s"Sending FlowCongestionDetected to ${actor.path}, src_ip_dpid is ${flow._1}"
+              )
+              actor ! FlowCongestionDetected(flow._1, flow._2.toSeq)
+              Unit
+            }
           }
         })
       } yield ret

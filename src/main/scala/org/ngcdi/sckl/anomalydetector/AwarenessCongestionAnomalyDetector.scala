@@ -2,13 +2,13 @@ package org.ngcdi.sckl.anomalydetector
 
 import org.ngcdi.sckl.msgs.Measurement
 import org.ngcdi.sckl.Constants._
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessRawFlowEntry
+import org.ngcdi.sckl.awareness.AwarenessRawFlowEntry
 
 case class AwarenessLinkCongestion(
   throughput: Double,
   bandwidth: Double,
   usage: Double,
-  flows: Seq[NetworkAwarenessRawFlowEntry]
+  flows: Seq[AwarenessRawFlowEntry]
 )
 
 case class AwarenessCongestionAnomalyDetectionResult(
@@ -45,7 +45,7 @@ class AwarenessCongestionAnomalyDetector(
         }.toMap)
     }.toMap
 
-    println("aggregatedSample: " + aggregatedSample)
+    // println("aggregatedSample: " + aggregatedSample)
 
     val congestedLinks = aggregatedSample.filter {
       case (link, stats) =>
@@ -58,7 +58,7 @@ class AwarenessCongestionAnomalyDetector(
         val throughput = stats.get(awarenessThroughput).get
         val bandwidth = stats.get(awarenessBandwidth).get
         val usage = throughput / bandwidth
-        println("link: " + link + ", usage: " + usage)
+        // println("link: " + link + ", usage: " + usage)
         Tuple2(Tuple2(l(0).toInt, l(1).toInt), Tuple3(throughput, bandwidth, usage))
     }.filter(_._2._3 >= threshold).toMap
 
@@ -80,7 +80,7 @@ class AwarenessCongestionAnomalyDetector(
         Tuple2(Tuple2(src, dst), Tuple5(flowThroughput, srcIp, dstIp, srcIpDpid, dstIpDpid))
     }.toSeq
 
-    println("flows: " + flows)
+    // println("flows: " + flows)
 
     val merged = congestedLinks.map {
       case (link, info) =>
@@ -89,7 +89,7 @@ class AwarenessCongestionAnomalyDetector(
         val usage = info._3
         val flowsOfLink = flows.filter(_._1 == link).map {
           case ((src, dst), (flowThroughput, srcIp, dstIp, srcIpDpid, dstIpDpid)) =>
-            NetworkAwarenessRawFlowEntry(src, dst, -1, -1, srcIp, dstIp, srcIpDpid, dstIpDpid, flowThroughput)
+            AwarenessRawFlowEntry(src, dst, -1, -1, srcIp, dstIp, srcIpDpid, dstIpDpid, flowThroughput)
         }
         Tuple2(link, AwarenessLinkCongestion(throughput, bandwidth, usage, flowsOfLink))
         // val bandwidth = 

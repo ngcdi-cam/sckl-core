@@ -1,4 +1,4 @@
-package org.ngcdi.sckl.ryuclient
+package org.ngcdi.sckl.awareness
 
 import akka.actor.ActorSystem
 import scala.concurrent.Future
@@ -6,14 +6,14 @@ import scala.util.{Success, Failure}
 import org.ngcdi.sckl.Constants
 import scala.concurrent.ExecutionContext
 
-object NetworkAwarenessClientDemo {
+object AwarenessClientDemo {
   def singleControllerTest(implicit
       system: ActorSystem,
       ec: ExecutionContext
   ) = {
     val log = system.log
 
-    val client: NetworkAwarenessClient = new NetworkAwarenessClient(
+    val client = new AwarenessClient(
       "http://172.18.0.2:8080"
     )
 
@@ -49,18 +49,18 @@ object NetworkAwarenessClientDemo {
       _ <- Future { log.info("Services: " + servicesRaw) }
     } yield Tuple2(links, accessTable)).onComplete {
       case Success(Tuple2(links, accessTable)) =>
-        // val topo = NetworkAwarenessTopology.fromStats(stats, 0)
-        val topo = NetworkAwarenessTopology(links, accessTable, 0)
-        // val accessTable = NetworkAwarenessAccessTable(0, accessTableRaw, topo)
+        // val topo = AwarenessTopology.fromStats(stats, 0)
+        val topo = AwarenessTopology(links, accessTable, 0)
+        // val accessTable = AwarenessAccessTable(0, accessTableRaw, topo)
 
         val switch1 = topo.switches(1)
         val switch2 = topo.switches(2)
 
         log.info("Switch 1: " + switch1)
-        log.info("Switch 1 Peers: " + switch1.getPeers)
+        log.info("Switch 1 Peers: " + switch1.getNeighbours)
 
         log.info("Switch 2: " + switch2)
-        log.info("Switch 2 Peers: " + switch2.getPeers)
+        log.info("Switch 2 Peers: " + switch2.getNeighbours)
         log.info("Access table: " + accessTable)
       case Failure(exception) =>
         log.error("Error: " + exception)

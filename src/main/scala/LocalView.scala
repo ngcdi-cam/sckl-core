@@ -17,24 +17,30 @@ import Constants._
 import org.ngcdi.sckl.behaviour.neighbouring.TargetPathsProvider
 import org.ngcdi.sckl.behaviour.forwarder.MessageForwardingBehaviour
 import scala.util.Random
+import org.ngcdi.sckl.behaviour.messagetransport.AbstractTransportBehaviour
+import org.ngcdi.sckl.behaviour.messagetransport.DirectTransportBehaviour
 
 final case class UpdateTargets(newTargets: Seq[ActorPath])
 
 object LocalView {
   def props(
+      digitalAssetRef: ActorRef,
       consolidateAtSeconds: Int,
       targetPaths: Seq[ActorPath],
       lpPath: ActorPath
-  ): Props = Props(new LocalView(consolidateAtSeconds, targetPaths, lpPath))
+  ): Props = Props(new LocalView(digitalAssetRef, consolidateAtSeconds, targetPaths, lpPath))
 }
 
 class LocalView(
+    digitalAssetRef: ActorRef,
     consolidateAtSeconds: Int,
     initialTargetPaths: Seq[ActorPath],
     localProcessorPath: ActorPath
-) extends ScklActor
+) extends AbstractTransportBehaviour
     with TargetPathsProvider
-    with MessageForwardingBehaviour {
+    // with MessageForwardingBehaviour 
+    // with DirectTransportBehaviour
+      {
 
   var msgTypeCount: Map[String, Counter] = _
   var view: ListBuffer[Measurement] = _
@@ -51,7 +57,7 @@ class LocalView(
   }
 
   def receive: Receive = {
-    localViewBehaviour().orElse(messageForwardingBehaviour)
+    localViewBehaviour().orElse(transportBehaviour)
   }
 
   def localViewBehaviour(): Receive = {
@@ -127,6 +133,7 @@ class LocalView(
     //if (view.find{_.metricName == measurement.metricName} == Option.empty)
     view += m
     //TODO store local view persistently
+    
   }
 
   /*
@@ -138,9 +145,9 @@ class LocalView(
     val currentView = view.toSeq
     context.actorSelection(localProcessorPath) ! currentView
     view.clear()
-    log.info(
-      "Message sent for consolidation " + localProcessorPath + " --> " + currentView
-    )
+    // log.info(
+    //   "Message sent for consolidation " + localProcessorPath + " --> " + currentView
+    // )
   }
 
   /*
@@ -149,18 +156,23 @@ class LocalView(
 
   def report(cView: Seq[Measurement]) = {
     if (!cView.isEmpty) {
-      log.debug("targetPaths:" + getTargetPaths())
+      log.info("targetPaths:" + getTargetPaths())
 
       // targetPaths.foreach { tp =>
       //   context.actorSelection(tp) ! AggregateLocalView(cView)
       //   log.info("Message sent to aggregator:" + tp + " --> " + cView)
       // }
       val message = AggregateLocalView(cView)
-      self ! ForwardingMessages.ForwardedMessage(
-        Random.nextLong(),
-        Constants.messageForwardingInitialTtl,
-        0,
-        message
+      // self ! ForwardingMessages.ForwardedMessage(
+      //   Random.nextLong(),
+      //   Constants.messageForwardingInitialTtl,
+      //   0,
+      //   message
+      // )
+
+      getTargetPaths().foreach( tp => 
+        // log.info(s"Target path: $tp")
+        sendTransportMessage(message, tp.address.host.getOrElse(ClusteringConfig.nodeIp), digitalAssetRef, ClusteringConfig.nodeIp)
       )
 
     } else {
@@ -174,4 +186,6 @@ class LocalView(
 
   }
 
+  override def transportBehaviour: PartialFunction[Any,Unit] = PartialFunction.empty
+  override def transportPrestart() = {}
 }

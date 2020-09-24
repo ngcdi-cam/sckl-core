@@ -1,7 +1,7 @@
 package org.ngcdi.sckl
 import scala.concurrent.duration._
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessService
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessRawCrossDomainLink
+import org.ngcdi.sckl.awareness.AwarenessService
+import org.ngcdi.sckl.awareness.AwarenessRawCrossDomainLink
 //import ClusteringConfig._
 
 object Constants {
@@ -181,7 +181,7 @@ object Constants {
   // ======================================
 
   val awarenessServices = Seq(
-    NetworkAwarenessService(0, "10.0.0.1", "10.0.0.2", Map(
+    AwarenessService(0, "10.0.0.1", "10.0.0.2", Map(
       awarenessFreeBandwidth -> 0.001,
       awarenessLatency -> 0.999
     ))
@@ -212,13 +212,18 @@ object Constants {
   // Network Awareness Cross Domain Links
   // ====================================
 
-  val awarenessCrossDomainLinks = Seq(
-    // srcDpid, srcPort, srcControllerId, dstDpid, dstPort, dstControllerId
-    NetworkAwarenessRawCrossDomainLink(1, 1, 0, 2, 1, 1),
-    NetworkAwarenessRawCrossDomainLink(5, 3, 0, 2, 3, 1),
-    NetworkAwarenessRawCrossDomainLink(5, 4, 0, 6, 3, 1),
-    NetworkAwarenessRawCrossDomainLink(8, 2, 0, 9, 2, 1)
-  )
+  // val awarenessCrossDomainLinks = Seq(
+  //   // srcDpid, srcPort, srcControllerId, dstDpid, dstPort, dstControllerId
+  //   AwarenessRawCrossDomainLink(1, 1, 0, 2, 1, 1),
+  //   AwarenessRawCrossDomainLink(5, 3, 0, 2, 3, 1),
+  //   AwarenessRawCrossDomainLink(5, 4, 0, 6, 3, 1),
+  //   AwarenessRawCrossDomainLink(8, 2, 0, 9, 2, 1)
+  // )
+
+  val awarenessCrossDomainLinks = Config.crossDomainLinks.map { link =>
+    assert(link.length == 6)
+    AwarenessRawCrossDomainLink(link(0), link(1), link(2), link(3), link(4), link(5))
+  }.toSeq
 
   // ================
   // Ryu Metric Types
@@ -259,10 +264,39 @@ object Constants {
 
   val awarenessStatsStreamerSenseInterval = 5 seconds
 
+  // ================================
+  // Message Forwarding and Transport
+  // ================================
+
+  // also used by message transport
+  val messageForwardingInitialTtl = 10
+  val messageForwardingIdQueueMaxSize = 100
+
   // ==================
-  // Message Forwarding
+  // Transport Topology
   // ==================
 
-  val messageForwardingInitialTtl = 1
-  val messageForwardingIdQueueMaxSize = 10
+  // val transportTopology = Map[String, Seq[String]](
+  //   "c1" -> Seq("c3", "c5"),
+  //   "c2" -> Seq("c4", "c7"),
+  //   "c3" -> Seq("c1", "c8"),
+  //   "c4" -> Seq("c2", "c6"),
+  //   "c5" -> Seq("c1", "c9"),
+  //   "c6" -> Seq("c4", "c8"),
+  //   "c7" -> Seq("c2", "c9"),
+  //   "c8" -> Seq("c3", "c6"),
+  //   "c9" -> Seq("c5", "c7")
+  // )
+
+  val transportTopology = Config.transportTopology
+
+  // =====================
+  // Name Resolution Utils
+  // =====================
+
+  // max number of retry attempts of name resolution
+  val nameResolutionAttempts = 50
+
+  // delay between each attempt of name resolution
+  val nameResolutionDelay = 5 seconds
 }

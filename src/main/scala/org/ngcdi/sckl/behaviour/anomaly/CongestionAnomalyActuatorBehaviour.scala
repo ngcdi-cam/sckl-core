@@ -1,15 +1,17 @@
-package org.ngcdi.sckl.behaviour
+package org.ngcdi.sckl.behaviour.anomaly
 
 import org.ngcdi.sckl.actuator.CongestionActuator
 import org.ngcdi.sckl.Constants
 import org.ngcdi.sckl.AnomalyMessages._
 import org.ngcdi.sckl.anomalydetector.AwarenessCongestionAnomalyDetectionResult
+import org.ngcdi.sckl.behaviour.awareness.AwarenessManagerReceiverBehaviour
 import scala.util.Success
 import scala.util.Failure
 
+
 trait CongestionAnomalyActuatorBehaviour
     extends AnomalyActuatorBehaviour
-    with NetworkAwarenessManagerReceiverBehaviour {
+    with AwarenessManagerReceiverBehaviour {
 
   private val actuator = new CongestionActuator(
     Constants.servicesToInstall

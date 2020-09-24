@@ -1,15 +1,16 @@
-package org.ngcdi.sckl.behaviour
+package org.ngcdi.sckl.behaviour.anomaly
 
 import org.ngcdi.sckl.actuator.OverheatingActuator
 import org.ngcdi.sckl.Constants
 import org.ngcdi.sckl.AnomalyMessages._
 import org.ngcdi.sckl.anomalydetector.OverheatingAnomalyDetectionResult
+import org.ngcdi.sckl.behaviour.awareness.AwarenessManagerReceiverBehaviour
 import scala.util.Success
 import scala.util.Failure
 
 trait OverheatingAnomalyActuatorBehaviour
     extends AnomalyActuatorBehaviour
-    with NetworkAwarenessManagerReceiverBehaviour {
+    with AwarenessManagerReceiverBehaviour {
 
   private val overheatingActuator = new OverheatingActuator(
     Constants.overheatingActuatorTemperatureWeightMap

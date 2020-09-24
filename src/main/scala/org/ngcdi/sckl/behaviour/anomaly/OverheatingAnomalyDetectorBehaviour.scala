@@ -1,4 +1,4 @@
-package org.ngcdi.sckl.behaviour
+package org.ngcdi.sckl.behaviour.anomaly
 
 import akka.actor._
 import org.ngcdi.sckl.anomalydetector.OverheatingAnomalyDetector

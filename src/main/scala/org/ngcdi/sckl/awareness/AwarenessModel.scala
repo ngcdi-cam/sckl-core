@@ -1,8 +1,8 @@
-package org.ngcdi.sckl.ryuclient
+package org.ngcdi.sckl.awareness
 
 import org.ngcdi.sckl.model.Model
 
-final case class NetworkAwarenessRawStatEntry (
+final case class AwarenessRawStatEntry (
     src: Int,
     dst: Int,
     src_port: Int,
@@ -10,7 +10,7 @@ final case class NetworkAwarenessRawStatEntry (
     metrics: Map[String, Double]
 ) extends Model
 
-final case class NetworkAwarenessRawFlowEntry (
+final case class AwarenessRawFlowEntry (
   src: Int,
   dst: Int,
   src_port: Int,
@@ -22,21 +22,21 @@ final case class NetworkAwarenessRawFlowEntry (
   throughput: Double
 ) extends Model
 
-final case class NetworkAwarenessService (
+final case class AwarenessService (
     id: Int,
     src: String,
     dst: String,
     weights: Map[String, Double]
 ) extends Model
 
-final case class NetworkAwarenessRawLink (
+final case class AwarenessRawLink (
     src: Int,
     dst: Int,
     src_port: Int,
     dst_port: Int
 ) extends Model
 
-final case class NetworkAwarenessRawCrossDomainLink (
+final case class AwarenessRawCrossDomainLink (
   src_dpid: Int,
   src_port: Int,
   src_controllerId: Int,
@@ -45,38 +45,43 @@ final case class NetworkAwarenessRawCrossDomainLink (
   dst_controllerId: Int
 ) extends Model
 
-final case class NetworkAwarenessRawAccessTableEntry (
+final case class AwarenessRawAccessTableEntry (
   host_ip: String,
   host_mac: String,
   dpid: Int,
   port: Int
 ) extends Model
 
-final case class NetworkAwarenessRawPathInfo (
-  stats: Seq[NetworkAwarenessRawPathPairInfo],
+final case class AwarenessRawPathInfoPre (
+  stats: Seq[AwarenessRawPathPairInfo],
+  switch_weights: Map[String, Double],
+) extends Model
+
+final case class AwarenessRawPathInfo (
+  stats: Seq[AwarenessRawPathPairInfo],
   switch_weights: Map[Int, Double],
 ) extends Model
 
-final case class NetworkAwarenessRawPathPairInfo (
+final case class AwarenessRawPathPairInfo (
   src: Int,
   dst: Int,
   metrics: Map[String, Double],
 ) extends Model
 
-final case class NetworkAwarenessRawAccessTableEntryPinning (
+final case class AwarenessRawAccessTableEntryPinning (
   ip: String,
   dpid: Int,
   port: Int
 ) extends Model
 
-final case class NetworkAwarenessRawPathInfoPairRequest (
+final case class AwarenessRawPathInfoPairRequest (
   src: Int,
   dst: Int,
   src_ip: String,
   dst_ip: String
 ) extends Model
 
-final case class NetworkAwarenessRawPathInfoRequest (
-  src_dst_pairs: Seq[NetworkAwarenessRawPathInfoPairRequest],
+final case class AwarenessRawPathInfoRequest (
+  src_dst_pairs: Seq[AwarenessRawPathInfoPairRequest],
   weights: Map[String, Double]
 ) extends Model

@@ -1,4 +1,4 @@
-package org.ngcdi.sckl.behaviour
+package org.ngcdi.sckl.behaviour.anomaly
 
 import org.ngcdi.sckl.ScklActor
 import org.ngcdi.sckl.AnomalyMessages._

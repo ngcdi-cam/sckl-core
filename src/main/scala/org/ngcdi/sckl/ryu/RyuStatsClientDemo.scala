@@ -1,4 +1,4 @@
-package org.ngcdi.sckl.ryuclient
+package org.ngcdi.sckl.ryu
 
 import akka.actor.ActorSystem
 import scala.concurrent.Future

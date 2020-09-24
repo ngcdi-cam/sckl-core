@@ -1,4 +1,4 @@
-package org.ngcdi.sckl.ryuclient
+package org.ngcdi.sckl.base
 
 import scala.concurrent.Future
 import akka.http.scaladsl.model.{

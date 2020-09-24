@@ -2,6 +2,7 @@ package org.ngcdi.sckl
 
 import org.ngcdi.sckl.msgs.Measurement
 import org.ngcdi.sckl.anomalydetector.AnomalyDetectionResult
+import akka.actor.ActorPath
 
 object AnomalyMessages {
   // @name: NewProcessedMeasurements
@@ -22,13 +23,38 @@ object AnomalyMessages {
 object AwarenessMessages {
 
   // @name: DoGetAwarenessStats
-  // @description: DoGetAwarenessStats messages are sent by NetworkAwarenessStatsStreamerBehaviour periodically to get the latest stats from the Network Awareness app
-  // @sender: NetworkAwarenessStatsStreamerBehaviour periodically
-  // @receiver: NetworkAwarenessStatsStreamerBehaviour
+  // @description: DoGetAwarenessStats messages are sent by AwarenessStatsStreamerBehaviour periodically to get the latest stats from the Network Awareness app
+  // @sender: AwarenessStatsStreamerBehaviour periodically
+  // @receiver: AwarenessStatsStreamerBehaviour
 
   object DoGetAwarenessStats
 }
 
 object ForwardingMessages {
-  case class ForwardedMessage(id: Long, ttl: Int, hops: Int, message: Object)
+  case class ForwardedMessage(id: Long, ttl: Int, hops: Int, message: Any)
+}
+
+object TransportMessages {
+  case class TMessage(
+      id: Long,
+      ttl: Int,
+      hops: Int,
+      message: Any,
+      sender: String,
+      recipient: String
+  )
+
+  def nextTMessage(orig: TMessage) = {
+    orig match {
+      case TMessage(id, ttl, hops, message, original_sender, recipient) =>
+        TMessage(
+          id,
+          ttl - 1,
+          hops + 1,
+          message,
+          original_sender,
+          recipient
+        )
+    }
+  }
 }

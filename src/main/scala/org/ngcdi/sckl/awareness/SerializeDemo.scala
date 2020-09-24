@@ -1,4 +1,4 @@
-package org.ngcdi.sckl.ryuclient
+package org.ngcdi.sckl.awareness
 
 import java.io._
 import akka.actor._
@@ -10,7 +10,7 @@ object SerializeDemo {
     implicit val executionContext = system.getDispatcher
     val log = system.log
 
-    val manager = new NetworkAwarenessManager(Seq("http://localhost:8080"))
+    val manager = new AwarenessManager(Seq("http://172.18.0.2:8080", "http://172.18.0.3:8080"))
     manager.init.onComplete {
       case Success(value) =>
         log.info("" + manager)
@@ -18,6 +18,9 @@ object SerializeDemo {
         log.info("" + manager.controllers(0).topology)
         val oos =
           new ObjectOutputStream(new FileOutputStream("/tmp/manager.bin"))
+        log.info("type " + manager.controllers(0).topology.switches(0).ports.getClass())
+        log.info("type " + manager.topology.switches(0).ports.getClass())
+        log.info("switches: " + manager.topology.switches.toBuffer)
         oos.writeObject(manager)
         oos.close
 
@@ -29,7 +32,7 @@ object SerializeDemo {
         // }
 
         val ois = new ObjectInputStream(new FileInputStream("/tmp/manager.bin"))
-        val newManager = ois.readObject.asInstanceOf[NetworkAwarenessManager]
+        val newManager = ois.readObject.asInstanceOf[AwarenessManager]
         ois.close
 
         log.info("" + newManager)

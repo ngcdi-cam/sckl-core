@@ -7,8 +7,8 @@ import org.ngcdi.sckl.msgs._
 import org.ngcdi.sckl.Config._
 import org.ngcdi.sckl.sdn._
 import org.ngcdi.sckl.adm._
-import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerReceiverBehaviour
-import org.ngcdi.sckl.behaviour.SimpleCombinedDetectorAndActuatorBehaviour
+import org.ngcdi.sckl.behaviour.awareness.AwarenessManagerReceiverBehaviour
+import org.ngcdi.sckl.behaviour.anomaly.SimpleCombinedDetectorAndActuatorBehaviour
 
 /*
 * Companion object for actor class. It matches incoming parameter from ServiceManagerLauncher
@@ -37,10 +37,10 @@ class ServiceManagerSimple()
     with ServiceView
     // with GroupAnomalyDetector
     with SimpleCombinedDetectorAndActuatorBehaviour
-    // with NetworkAwarenessStatsStreamerBehaviour
+    // with AwarenessStatsStreamerBehaviour
     // with RESTServiceActuator
     // with PredictiveAnalytics
-    with NetworkAwarenessManagerReceiverBehaviour
+    with AwarenessManagerReceiverBehaviour
     with WebServer {
 
   var reqRegistrations: Int = 0
@@ -69,7 +69,7 @@ class ServiceManagerSimple()
       // .orElse(anomalyHandlerBehaviour)
       // .orElse(predictiveBehaviour)
       // .orElse(actBehaviour)
-      .orElse(networkAwarenessManagerReceiverBehaviour)
+      .orElse(awarenessManagerReceiverBehaviour)
       // .orElse(awarenessStatsStreamerBehaviour)
       .orElse(scklBehaviour) // Parent behaviour at last
   }

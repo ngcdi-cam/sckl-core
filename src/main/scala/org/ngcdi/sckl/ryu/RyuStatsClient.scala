@@ -1,4 +1,4 @@
-package org.ngcdi.sckl.ryuclient
+package org.ngcdi.sckl.ryu
 
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import scala.concurrent.ExecutionContext
@@ -9,6 +9,7 @@ import akka.actor.ActorSystem
 import scala.concurrent.Future
 import scala.collection.mutable
 import org.ngcdi.sckl.Constants._
+import org.ngcdi.sckl.base.SimpleRestClient
 
 object RyuStatsClient {
   lazy val lastReadings = mutable.Map.empty[Int, RyuSwitchStat]

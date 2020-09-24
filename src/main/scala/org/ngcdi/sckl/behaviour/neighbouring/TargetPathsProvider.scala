@@ -3,7 +3,9 @@ import akka.actor.ActorPath
 import org.ngcdi.sckl.ScklActor
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import akka.pattern.after
+import akka.pattern.retry
+import scala.util.Failure
+import scala.util.Success
 
 trait TargetPathsProvider {
   this: ScklActor =>
@@ -34,22 +36,13 @@ trait TargetPathsProvider {
         Unit
       }
     }
-    Future.sequence(futureSeq).map({ _ => Unit })
+    val future: Future[Unit] = Future.sequence(futureSeq).map( _ => Unit )
+    future.onComplete {
+      case Success(value) => 
+        log.info("Target path name resolution successful")
+      case Failure(exception) => 
+        log.error("Failed to resolve names of target paths: " + exception)
+    }
+    future
   }
-
-  final def resolveNodeNamesWithRetry(
-      nodeNames: Seq[String]
-  ): Future[Unit] = {
-    resolveNodeNames(nodeNames)
-      .recoverWith {
-        case _ =>
-          log.error("Failed to resolve node names, retrying in 5 sec")
-          after(5 seconds, context.system.scheduler)(resolveNodeNamesWithRetry(nodeNames))
-      }
-      .map { Unit =>
-        log.info("Node name resolution successful")
-      // log.info("Neighbours are: " + neighbours)
-      }
-  }
-
 }

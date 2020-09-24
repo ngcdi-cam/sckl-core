@@ -9,17 +9,17 @@ import scala.concurrent.duration._
 
 import java.time.{ZoneOffset, LocalDateTime, Instant}
 import org.ngcdi.sckl.AnomalyMessages
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessManager
+import org.ngcdi.sckl.awareness.AwarenessManager
 import scala.util.Success
 import scala.util.Failure
-import org.ngcdi.sckl.behaviour.awareness.NetworkAwarenessSwitchProvider
+import org.ngcdi.sckl.behaviour.awareness.AwarenessSwitchProvider
 
 /*
  * This trait implements the generation of a service view with the measurements
  * collected by the DigitalAsset agents
  *
  */
-trait ServiceView extends NetworkAwarenessSwitchProvider {
+trait ServiceView extends AwarenessSwitchProvider {
 
   this: ScklActor =>
 
@@ -66,14 +66,22 @@ trait ServiceView extends NetworkAwarenessSwitchProvider {
   }
 
   def doAggregateLocalViews(measurements: Seq[Measurement]) = {
-    val moi = measurements
-      .filter { measurement =>
-        val resourceId = measurement.resourceId.split(":")
-        measurement.neId == ClusteringConfig.nodeName || 
-          (resourceId.length == 2 && 
-            (resourceId(0).toInt == awarenessSwitchId || 
+    val moi =
+      if (
+        this.isInstanceOf[
+          ServiceManagerSimple
+        ] || ClusteringConfig.digiAssetLauncher == "awareness,agtopo2"
+      ) measurements
+      else
+        (measurements
+          .filter { measurement =>
+            val resourceId = measurement.resourceId.split(":")
+            measurement.neId == ClusteringConfig.nodeName ||
+            (resourceId.length == 2 &&
+            (resourceId(0).toInt == awarenessSwitchId ||
             resourceId(1).toInt == awarenessSwitchId))
-      }
+          })
+
     // .filter(_.neId ==  ClusteringConfig.nodeName)
 
     // .foldLeft[Seq[Measurement]](Seq.empty) { (ac, m) =>

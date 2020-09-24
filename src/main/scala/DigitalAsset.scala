@@ -21,14 +21,19 @@ import kamon.Kamon
 import ClusteringConfig._
 import msgs._
 import Constants._
-import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerReceiverBehaviour
+import org.ngcdi.sckl.behaviour.awareness.AwarenessManagerReceiverBehaviour
 import org.ngcdi.sckl.behaviour.neighbouring.EnvListNeighbouringBehaviour
 import org.ngcdi.sckl.behaviour.neighbouring.TargetPathsProvider
-import org.ngcdi.sckl.behaviour.SimpleCombinedDetectorAndActuatorBehaviour
+import org.ngcdi.sckl.behaviour.anomaly.SimpleCombinedDetectorAndActuatorBehaviour
 import org.ngcdi.sckl.behaviour.neighbouring.AwarenessNeighbouringBehaviour
 import org.ngcdi.sckl.behaviour.forwarder.MessageForwardingBehaviour
 import org.ngcdi.sckl.behaviour.awareness.AwarenessServiceManagerBehaviour
-import org.ngcdi.sckl.behaviour.FlowCombinedDetectorAndActuatorBehaviour
+import org.ngcdi.sckl.behaviour.anomaly.FlowCombinedDetectorAndActuatorBehaviour
+import org.ngcdi.sckl.behaviour.messagetransport.DirectTransportBehaviour
+import org.ngcdi.sckl.behaviour.messagetransport.AbstractTransportBehaviour
+import org.ngcdi.sckl.behaviour.messagetransport.IndirectTransportBehaviour
+import org.ngcdi.sckl.behaviour.anomaly.AbstractCombinedDetectorAndActuatorBehaviour
+import org.ngcdi.sckl.behaviour.messagetransport.EnvListTransportTopologyBehaviour
 
 object DigitalAsset {
   def props(datype: String, id: String, localProcessor: ActorRef): Props = {
@@ -39,14 +44,66 @@ object DigitalAsset {
             with IntentCombinedController
             with Remoting
         )
-      case "standalone" =>
+      // sdn_type,network_topology,agent_topology,ext_conf
+      case "awareness,agtopo1" =>
+        // Also set
+        // neighbours: ""
+        // sm_q: 1
         Props(
-          new DigitalAsset(id, localProcessor)
+          new DigitalAsset(id, localProcessor, true, false, false)
             with CombinedController
-            // with EnvListNeighbouringBehaviour
-            with AwarenessNeighbouringBehaviour
             with Remoting
+            with DirectTransportBehaviour
+            // with EnvListNeighbouringBehaviour
         )
+      case "awareness,agtopo2" =>
+        // Also set
+        // neighbours: "c1"
+        // sm_q: 0
+        Props(
+          new DigitalAsset(id, localProcessor, true, false, false)
+            with CombinedController
+            with Remoting
+            with DirectTransportBehaviour
+            with EnvListNeighbouringBehaviour
+            with SimpleCombinedDetectorAndActuatorBehaviour
+        )
+      case "awareness,agtopo3" =>
+        Props(
+          new DigitalAsset(id, localProcessor, false, true, false)
+            with CombinedController
+            with Remoting
+            with DirectTransportBehaviour
+            with AwarenessNeighbouringBehaviour
+            with SimpleCombinedDetectorAndActuatorBehaviour
+        )
+      case "awareness,agtopo4" =>
+        Props(
+          new DigitalAsset(id, localProcessor, false, true, true)
+            with CombinedController
+            with Remoting
+            with DirectTransportBehaviour
+            with AwarenessNeighbouringBehaviour
+            with FlowCombinedDetectorAndActuatorBehaviour
+        )
+      
+      case "awareness,agtopo4,indirect" =>
+        Props(
+          new DigitalAsset(id, localProcessor, false, true, true)
+            with CombinedController
+            with Remoting
+            with IndirectTransportBehaviour
+            with EnvListTransportTopologyBehaviour
+            with AwarenessNeighbouringBehaviour
+            with FlowCombinedDetectorAndActuatorBehaviour
+        )
+
+      // case "awareness,mesh,agtopo4" =>
+      // case "awareness,mesh,agtopo4,multisdn" =>
+      // case "awareness,mesh,agtopo5" =>
+      // case "awareness,custom,agtopo4" =>
+      // case "awareness,ring,agtopo4" =>
+      // case "awareness,complete_bipartite,agtopo4" =>
       case _ =>
         Props(
           new DigitalAsset(id, localProcessor)
@@ -59,14 +116,31 @@ object DigitalAsset {
   }
 }
 
-class DigitalAsset(id: String, localProcessor: ActorRef)
-    extends DigitalAssetBase(id, localProcessor)
-    with NetworkAwarenessManagerReceiverBehaviour
+class DigitalAsset(
+    id: String,
+    localProcessor: ActorRef,
+    _awarenessStatsSensorEnabled: Boolean = false,
+    _awarenessSwitchStatsSensorEnabled: Boolean = true,
+    _awarenessSwitchFlowSensorEnabled: Boolean = true
+) extends DigitalAssetBase(
+      id,
+      localProcessor,
+      _awarenessStatsSensorEnabled,
+      _awarenessSwitchStatsSensorEnabled,
+      _awarenessSwitchFlowSensorEnabled
+    )
+
+    with AwarenessManagerReceiverBehaviour
     with TargetPathsProvider
     with ServiceView
-    with FlowCombinedDetectorAndActuatorBehaviour
-    // with SimpleCombinedDetectorAndActuatorBehaviour
-    with MessageForwardingBehaviour
+    with AbstractCombinedDetectorAndActuatorBehaviour
+    // with FlowCombinedDetectorAndActuatorBehaviour // for topology 4-5
+    // with SimpleCombinedDetectorAndActuatorBehaviour // for topology 1-3
+
+    // with MessageForwardingBehaviour // deprecated
+    // with DirectTransportBehaviour // for topology 1-4
+    // with IndirectTransportBehaviour // for topology 5, use with mesh_indirect topo in sckl-run
+    with AbstractTransportBehaviour
     with AwarenessServiceManagerBehaviour {
 
   var keyHosts: Seq[String] = _
@@ -77,6 +151,7 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
     neighbouringBehaviourPrestart()
     serviceViewPreStart()
     awarenessServiceManagerPrestart()
+    transportPrestart()
   }
 
   override def getLocalProcessorPath(): ActorPath = {
@@ -85,16 +160,16 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
 
   def receive = {
     daBehaviour
-      .orElse(messageForwardingBehaviour)
-      .orElse[Any, Unit](connBehaviour)
+      .orElse(transportBehaviour)
+      .orElse(connBehaviour)
       .orElse(svBehaviour)
-      .orElse[Any, Unit](networkAwarenessManagerReceiverBehaviour)
+      .orElse(awarenessManagerReceiverBehaviour)
       .orElse(anomalyActuatorBehaviour)
       .orElse(anomalyDetectorBehaviour)
       .orElse(awarenessServiceManagerBehaviour)
-      .orElse[Any, Unit](ctlBehaviour)
-      .orElse[Any, Unit](baseBehaviour)
-      .orElse[Any, Unit](scklBehaviour)
+      .orElse(ctlBehaviour)
+      .orElse(baseBehaviour)
+      .orElse(scklBehaviour)
   }
 
   val daBehaviour: Receive = {
@@ -120,7 +195,7 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
       )
       if (self.path.toSerializationFormat.contains(actdel.pathString)) {
         context.actorSelection(lViewPath) ! PoisonPill
-//        cluster.down(cluster.selfAddress)
+        // cluster.down(cluster.selfAddress)
         context.stop(localProcessor)
         context.stop(self)
       }
@@ -132,5 +207,4 @@ class DigitalAsset(id: String, localProcessor: ActorRef)
   }
 
   //It triggers initialisation of sensors and linkage
-
 }

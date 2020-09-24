@@ -1,7 +1,7 @@
 package org.ngcdi.sckl.actuator
 
 import org.ngcdi.sckl.anomalydetector._
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessManager
+import org.ngcdi.sckl.awareness.AwarenessManager
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import akka.actor.ActorSystem
@@ -21,7 +21,7 @@ class OverheatingActuator(temperatureWeightMap: Map[(Double, Double), Double])(
       anomalyDetectionResult: OverheatingAnomalyDetectionResult
   )(implicit
       actorSystem: ActorSystem,
-      awarenessManager: Future[NetworkAwarenessManager]
+      awarenessManager: Future[AwarenessManager]
   ): Future[Seq[Boolean]] = {
     val controllerId = 0 // TODO: get controller ID from anomalyDetectionResult
 

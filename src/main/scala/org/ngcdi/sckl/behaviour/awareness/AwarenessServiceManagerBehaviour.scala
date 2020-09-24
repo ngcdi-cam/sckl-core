@@ -1,16 +1,18 @@
 package org.ngcdi.sckl.behaviour.awareness
 
 import org.ngcdi.sckl.ScklActor
-import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerReceiverBehaviour
+import org.ngcdi.sckl.behaviour.awareness.AwarenessManagerReceiverBehaviour
 import scala.concurrent.Future
 import org.ngcdi.sckl.Constants
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessUtils
-import org.ngcdi.sckl.behaviour.FlowCongestionDetected
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessCrossDomainOptimizer
+import org.ngcdi.sckl.awareness.AwarenessUtils
+import org.ngcdi.sckl.behaviour.anomaly.FlowCongestionDetected
+import org.ngcdi.sckl.awareness.AwarenessCrossDomainOptimizer
+import scala.util.Success
+import scala.util.Failure
 
 trait AwarenessServiceManagerBehaviour
-    extends NetworkAwarenessSwitchProvider
-    with NetworkAwarenessManagerReceiverBehaviour
+    extends AwarenessSwitchProvider
+    with AwarenessManagerReceiverBehaviour
     with AwarenessManagedServicesProvider
     with AwarenessManagedGlobalServicesProvider
     with AwarenessCrossDomainOptimizerProvider {
@@ -22,7 +24,7 @@ trait AwarenessServiceManagerBehaviour
       manager <- awarenessManager
       switch <- awarenessSwitch
       _ <- Future {
-        val optimizer = new NetworkAwarenessCrossDomainOptimizer(
+        val optimizer = new AwarenessCrossDomainOptimizer(
           Constants.awarenessOptimalKPaths,
           Constants.awarenessOptimalK2Paths,
           Constants.awarenessEnabledMetrics,
@@ -35,23 +37,26 @@ trait AwarenessServiceManagerBehaviour
         log.info("Hosts are " + hosts)
         val hostIps = hosts.filter(_.switch == switch).map(_.ip).toSeq
         val managedServices = hostIps.flatMap(
-          NetworkAwarenessUtils.lookUpServiceByIp(
+          AwarenessUtils.lookUpServiceByIp(
             Constants.awarenessServices,
             _
           )
-        )
+        ).distinct
         setAwarenessManagedServices(managedServices)
 
         val globalHosts = manager.topology.hosts
         log.info("Global hosts are " + globalHosts)
-        val globalHostIps = globalHosts.filter(_.switch == switch).map(_.ip).toSeq
+        val globalHostIps =
+          globalHosts.filter(_.switch == switch).map(_.ip).toSeq
         val managedGlobalServices = globalHostIps.flatMap(
-          NetworkAwarenessUtils.lookUpServiceByIp(
+          AwarenessUtils.lookUpServiceByIp(
             Constants.awarenessServices,
             _,
             true // only the head of the path takes the role of optimizing the cross domain paths
           )
-        )
+        ).distinct
+
+        setAwarenessManagedGlobalServices(managedGlobalServices)
 
         if (managedServices.size > 0) {
           log.info(
@@ -63,10 +68,10 @@ trait AwarenessServiceManagerBehaviour
 
         if (managedGlobalServices.size > 0) {
           log.info(
-            s"i'm an awareness global service manager, host IPs: $globalHostIps, managed services: $managedGlobalServices"
+            s"I'm an awareness global service manager, host IPs: $globalHostIps, managed services: $managedGlobalServices"
           )
         } else {
-          log.info("i'm not an awareness global service manager")
+          log.info("I'm not an awareness global service manager")
         }
       }
     } yield Unit
@@ -80,7 +85,7 @@ trait AwarenessServiceManagerBehaviour
         )
       } else {
         log.info(s"Received FlowCongestionDetected from $srcIpDpid")
-        for {
+        (for {
           manager <- awarenessManager
           switch <- awarenessSwitch
           services <- awarenessManagedServices
@@ -88,16 +93,21 @@ trait AwarenessServiceManagerBehaviour
           optimizer <- awarenessCrossDomainOptimizer
           _ <- Future {
             val controllerId = switch.controllerId
+            // TODO: use advanced service parameter tuning algorithms
             flows.foreach { flow =>
-              val targetServices = NetworkAwarenessUtils
+              val targetServices = AwarenessUtils
                 .lookUpServiceBySrcDstIp(services, flow.src_ip, flow.dst_ip)
               log.info("Services to install: " + targetServices)
               manager.installServices(targetServices, controllerId)
             }
           }
           _ <- Future.sequence(globalServices.map(optimizer.optimize(_)))
-        } yield Unit
+        } yield Unit).onComplete({
+          case Success(value) => 
+          case Failure(exception) => 
+            log.error("Error handling FlowCongestionDetected: " + exception)
+            log.error("" + exception.getStackTrace())
+        })
       }
   }
-
 }

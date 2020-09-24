@@ -1,19 +1,19 @@
 package org.ngcdi.sckl.actuator
 
 import org.ngcdi.sckl.anomalydetector._
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessManager
+import org.ngcdi.sckl.awareness.AwarenessManager
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
-import org.ngcdi.sckl.ryuclient.NetworkAwarenessService
+import org.ngcdi.sckl.awareness.AwarenessService
 import akka.actor.ActorSystem
 
-class CongestionActuator(servicesToInstall: Seq[NetworkAwarenessService])(
+class CongestionActuator(servicesToInstall: Seq[AwarenessService])(
     implicit ec: ExecutionContext
 ) extends Actuator[AwarenessCongestionAnomalyDetectionResult, Future[Boolean]] {
 
   override def triggerAction(
       anomaly: AwarenessCongestionAnomalyDetectionResult
-  )(implicit actorSystem: ActorSystem, awarenessManager: Future[NetworkAwarenessManager]): Future[Boolean] = {
+  )(implicit actorSystem: ActorSystem, awarenessManager: Future[AwarenessManager]): Future[Boolean] = {
     val controllerId = 0 // TODO: get controller ID from anomalyDetectionResult
     for {
       manager <- awarenessManager

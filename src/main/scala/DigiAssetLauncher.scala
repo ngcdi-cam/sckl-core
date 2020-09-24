@@ -41,6 +41,7 @@ object DigiAssetLauncher {
     println("args:" + args(0))
 
     if (args(0) != null) {
+      log.info(s"Launching Digital Asset with args ${args(0)}")
 
       args(0) match {
         case _ =>

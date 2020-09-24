@@ -1,4 +1,4 @@
-package org.ngcdi.sckl.ryuclient
+package org.ngcdi.sckl.awareness
 
 import scala.concurrent.ExecutionContext
 import scala.collection.JavaConverters;
@@ -10,18 +10,18 @@ import org.ngcdi.sckl.Constants._
 import akka.actor.ActorSystem
 import scala.concurrent.Future
 
-class NetworkAwarenessCrossDomainOptimizer(
+class AwarenessCrossDomainOptimizer(
     kPaths: Int,
     k2Paths: Int,
     enabledMetrics: Seq[String],
     defaultMetricWeights: Map[String, Double]
 )(implicit
-    manager: NetworkAwarenessManager,
+    manager: AwarenessManager,
     ec: ExecutionContext
 ) {
 
   private lazy val rawDomainConnectivityGraph =
-    manager.topology.getDomainConnectivityGraph()
+    manager.topology.domainConnectivityGraph
 
   private lazy val domainConnectivityGraph: Graph[Int, DefaultEdge] = {
     val graph =
@@ -33,7 +33,7 @@ class NetworkAwarenessCrossDomainOptimizer(
     graph
   }
 
-  // private lazy val graph: Graph[NetworkAwarenessSwitch, DefaultEdge] = {
+  // private lazy val graph: Graph[AwarenessSwitch, DefaultEdge] = {
 
   // val intraDomainLinks = manager.topology.switches
   //   .groupBy(_.controllerId)
@@ -51,7 +51,7 @@ class NetworkAwarenessCrossDomainOptimizer(
   // val interDomainLinks = manager.topology.getEdgeLinks
   // val allLinks = intraDomainLinks.values.flatten.toSeq ++ interDomainLinks
   // val pregraph =
-  //   new DefaultUndirectedGraph[NetworkAwarenessSwitch, DefaultEdge](
+  //   new DefaultUndirectedGraph[AwarenessSwitch, DefaultEdge](
   //     new DefaultEdge().getClass()
   //   )
 
@@ -61,8 +61,8 @@ class NetworkAwarenessCrossDomainOptimizer(
   // }
 
   private def getCandidatePaths(
-      src: NetworkAwarenessSwitch,
-      dst: NetworkAwarenessSwitch,
+      src: AwarenessSwitch,
+      dst: AwarenessSwitch,
       k: Int
   ): Seq[GraphPath[Int, DefaultEdge]] = {
     val algo = new YenKShortestPath(domainConnectivityGraph)
@@ -71,8 +71,8 @@ class NetworkAwarenessCrossDomainOptimizer(
   }
 
   private case class PathStats(
-      src: NetworkAwarenessSwitch,
-      dst: NetworkAwarenessSwitch,
+      src: AwarenessSwitch,
+      dst: AwarenessSwitch,
       metrics: Map[String, Double]
   )
 
@@ -93,7 +93,7 @@ class NetworkAwarenessCrossDomainOptimizer(
   private def getPathScore(
       path: Seq[PathStats],
       weights: Map[String, Double],
-      edgeSwitchWeights: Map[NetworkAwarenessSwitch, Double]
+      edgeSwitchWeights: Map[AwarenessSwitch, Double]
   ): Double = {
     val metricRawFunctions = Map[String, Seq[PathStats] => Double](
       awarenessFreeBandwidth -> { x =>
@@ -118,6 +118,7 @@ class NetworkAwarenessCrossDomainOptimizer(
       val metricValue = metricRawFunctions.get(metricName).get.apply(path)
       val metricScore =
         metricScoreFunctions.get(metricName).get.apply(metricValue)
+      // println(s"$metricName -> value: $metricValue, score: $metricScore")
       metricScore * weight
     }.sum
 
@@ -131,38 +132,43 @@ class NetworkAwarenessCrossDomainOptimizer(
   // Get the optimal path among candidate paths for service
   private def getOptimalPathInternal(
       pathStatsMap: Map[
-        Tuple2[NetworkAwarenessSwitch, NetworkAwarenessSwitch],
+        Tuple2[AwarenessSwitch, AwarenessSwitch],
         PathStats
       ],
       paths: Seq[Seq[Tuple2[
-        Tuple2[NetworkAwarenessSwitch, Int],
-        Tuple2[NetworkAwarenessSwitch, Int]
+        Tuple2[AwarenessSwitch, Int],
+        Tuple2[AwarenessSwitch, Int]
       ]]],
-      service: NetworkAwarenessService,
-      edgeSwitchWeights: Map[NetworkAwarenessSwitch, Double]
+      service: AwarenessService,
+      edgeSwitchWeights: Map[AwarenessSwitch, Double]
   ): Seq[Tuple2[
-    Tuple2[NetworkAwarenessSwitch, Int],
-    Tuple2[NetworkAwarenessSwitch, Int]
+    Tuple2[AwarenessSwitch, Int],
+    Tuple2[AwarenessSwitch, Int]
   ]] = {
     val weights = defaultMetricWeights ++ service.weights
     paths.maxBy({ path =>
       val pathWithStats = path.map { link =>
         pathStatsMap.get(Tuple2(link._1._1, link._2._1)).get
       }
-      getPathScore(pathWithStats, weights, edgeSwitchWeights)
+
+      // val pathStr = pathWithStats.map { x => s"${x.src} -> ${x.dst}"}.mkString(" --> ")
+      val score = getPathScore(pathWithStats, weights, edgeSwitchWeights)
+      // println(s"PATH: $pathStr")
+      // println(s"SCORE: $score")
+      score
     })
   }
 
   // Get the optimal path from src to dst for service
   def getOptimalPath(
-      src: NetworkAwarenessSwitch,
-      dst: NetworkAwarenessSwitch,
-      service: NetworkAwarenessService,
+      src: AwarenessSwitch,
+      dst: AwarenessSwitch,
+      service: AwarenessService,
       k: Int,
       k2: Int
   )(implicit
       actorSystem: ActorSystem
-  ): Future[Seq[NetworkAwarenessSwitchLink]] = {
+  ): Future[Seq[AwarenessSwitchLink]] = {
     // actorSystem.log.info(s"src is $src, dst is $dst")
 
     // inter-domain links
@@ -171,7 +177,7 @@ class NetworkAwarenessCrossDomainOptimizer(
         JavaConverters.asScalaIterator(path.getVertexList().iterator()).toSeq
       // actorSystem.log.info(s"[PATH] ${controllers.toBuffer}")
 
-      var switchLinks = Seq(Seq.empty[NetworkAwarenessSwitchLink])
+      var switchLinks = Seq(Seq.empty[AwarenessSwitchLink])
       controllers
         .dropRight(1)
         .zip(controllers.drop(1))
@@ -197,7 +203,7 @@ class NetworkAwarenessCrossDomainOptimizer(
 
     actorSystem.log.info(s"Candidate paths: ${paths.toBuffer}")
 
-    val intraDomainPaths = // : Seq[Seq[Tuple2[NetworkAwarenessSwitch, Int]]]
+    val intraDomainPaths = // : Seq[Seq[Tuple2[AwarenessSwitch, Int]]]
       paths.map { origPath =>
         val path = (origPath.flatMap { link =>
           Seq(Tuple2(link.src, link.srcPort), Tuple2(link.dst, link.dstPort))
@@ -251,7 +257,7 @@ class NetworkAwarenessCrossDomainOptimizer(
             assert(link.length == 2)
             val src = link(0)
             val dst = link(1)
-            NetworkAwarenessSwitchLink(src._1, dst._1, src._2, dst._2)
+            AwarenessSwitchLink(src._1, dst._1, src._2, dst._2)
           }
           .toSeq
       }
@@ -292,24 +298,30 @@ class NetworkAwarenessCrossDomainOptimizer(
     //         assert(link.length == 2)
     //         val src = link(0)
     //         val dst = link(1)
-    //         NetworkAwarenessSwitchLink(src._1, dst._1, src._2, dst._2)
+    //         AwarenessSwitchLink(src._1, dst._1, src._2, dst._2)
     //       }
     //       .toSeq
     //   }
   }
 
-  def optimize(service: NetworkAwarenessService)(implicit
+  def optimize(service: AwarenessService)(implicit
       actorSystem: ActorSystem
   ): Future[Unit] = {
+    if (manager.controllers.size < 2) {
+      actorSystem.log.info("Cross domain optimizer is disabled because there is only one SDN controller")
+      return Future { Unit }
+    }
+    
     val srcHost = manager.topology.getHostByIp(service.src).get
     val dstHost = manager.topology.getHostByIp(service.dst).get
     val srcSwitch = srcHost.switch
     val dstSwitch = dstHost.switch
     getOptimalPath(srcSwitch, dstSwitch, service, kPaths, k2Paths).map {
       interDomainLinks =>
+      actorSystem.log.info("Best path: " + interDomainLinks)
         val pinnings = interDomainLinks
           .flatMap {
-            case NetworkAwarenessSwitchLink(
+            case AwarenessSwitchLink(
                   srcSwitch,
                   dstSwitch,
                   srcPort,
@@ -318,7 +330,7 @@ class NetworkAwarenessCrossDomainOptimizer(
               Seq(
                 Tuple2(
                   dstSwitch.controllerId,
-                  NetworkAwarenessRawAccessTableEntryPinning(
+                  AwarenessRawAccessTableEntryPinning(
                     service.src,
                     dstSwitch.dpid,
                     dstPort
@@ -326,7 +338,7 @@ class NetworkAwarenessCrossDomainOptimizer(
                 ),
                 Tuple2(
                   srcSwitch.controllerId,
-                  NetworkAwarenessRawAccessTableEntryPinning(
+                  AwarenessRawAccessTableEntryPinning(
                     service.dst,
                     srcSwitch.dpid,
                     srcPort

@@ -7,10 +7,10 @@ import akka.cluster.Member
 import scala.concurrent.duration._
 
 import ClusteringConfig._
-import org.ngcdi.sckl.behaviour.NetworkAwarenessManagerSenderBehaviour
+import org.ngcdi.sckl.behaviour.awareness.AwarenessManagerSenderBehaviour
 
 class FunctionProvisioner
-    extends NetworkAwarenessManagerSenderBehaviour
+    extends AwarenessManagerSenderBehaviour
     {
 
   import Constants._

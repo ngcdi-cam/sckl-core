@@ -1,24 +1,24 @@
-package org.ngcdi.sckl.ryuclient
+package org.ngcdi.sckl.awareness
 
 import akka.actor.ActorSystem
 import scala.util.Success
 import scala.util.Failure
 import org.ngcdi.sckl.Constants
 
-object NetworkAwarenessCrossDomainOptimizerDemo {
+object AwarenessCrossDomainOptimizerDemo {
   def main(args: Array[String]): Unit = {
     implicit val system = ActorSystem()
     implicit val executionContext = system.getDispatcher
-    val log = system.log
+    // val log = system.log
 
     val baseUrls = Seq(
-      "http://127.0.0.1:8080",
-      "http://127.0.0.1:8081"
+      "http://172.18.0.2:8080",
+      "http://172.18.0.3:8080"
     )
 
-    implicit val manager = new NetworkAwarenessManager(baseUrls)
+    implicit val manager = new AwarenessManager(baseUrls)
 
-    val optimizer = new NetworkAwarenessCrossDomainOptimizer(
+    val optimizer = new AwarenessCrossDomainOptimizer(
       Constants.awarenessOptimalKPaths,
       Constants.awarenessOptimalK2Paths,
       Constants.awarenessEnabledMetrics,
